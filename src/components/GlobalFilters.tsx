@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useGlobalFilters } from "@/lib/FilterContext";
 import { FilterX } from "lucide-react";
 
@@ -28,6 +28,24 @@ export default function GlobalFilters({
     showVisitorType,
 }: GlobalFiltersProps) {
     const { filters, setFilter, resetFilters } = useGlobalFilters();
+
+    // Local state for debouncing country input to prevent re-renders on every stroke
+    const [localCountry, setLocalCountry] = useState(filters.country !== 'All' ? filters.country : '');
+
+    // Sync from global down to local when global resets
+    useEffect(() => {
+        if (filters.country === 'All') setLocalCountry('');
+    }, [filters.country]);
+
+    // Debounce syncing local up to global
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if ((localCountry || 'All') !== filters.country) {
+                setFilter('country', localCountry || 'All');
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [localCountry, filters.country, setFilter]);
 
     return (
         <div className="glass-panel p-4 mb-6 flex flex-wrap gap-4 items-end z-20 relative">
@@ -78,8 +96,8 @@ export default function GlobalFilters({
                         type="text"
                         placeholder="Type to filter..."
                         className="bg-slate-950/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500 transition-colors"
-                        value={filters.country !== 'All' ? filters.country : ''}
-                        onChange={(e) => setFilter('country', e.target.value || 'All')}
+                        value={localCountry}
+                        onChange={(e) => setLocalCountry(e.target.value)}
                     />
                 </div>
             )}

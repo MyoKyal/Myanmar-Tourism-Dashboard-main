@@ -85,7 +85,7 @@ export default function HotelsPage() {
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
                                             cursor={{ fill: '#1e293b' }}
-                                            formatter={(val: any, name: string) => [new Intl.NumberFormat('en-US').format(val), name === 'rooms' ? 'Rooms' : 'Hotels']}
+                                            formatter={(val: any, name: any) => [new Intl.NumberFormat('en-US').format(val), name === 'rooms' ? 'Rooms' : 'Hotels']}
                                         />
                                         <Bar dataKey="rooms" fill="#f43f5e" radius={[0, 4, 4, 0]} />
                                     </BarChart>
@@ -110,7 +110,7 @@ export default function HotelsPage() {
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
                                             itemStyle={{ color: '#22d3ee' }}
-                                            formatter={(val: any, name: string) => [new Intl.NumberFormat('en-US').format(val), name === 'rooms' ? 'Total Rooms' : 'Total Hotels']}
+                                            formatter={(val: any, name: any) => [new Intl.NumberFormat('en-US').format(val), name === 'rooms' ? 'Total Rooms' : 'Total Hotels']}
                                         />
 
                                         <Area yAxisId="left" type="monotone" dataKey="rooms" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.5} />

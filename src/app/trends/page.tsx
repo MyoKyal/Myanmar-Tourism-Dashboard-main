@@ -94,7 +94,7 @@ export default function TrendsPage() {
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
                                             itemStyle={{ color: '#22d3ee' }}
-                                            formatter={(val: any, name: string) => [
+                                            formatter={(val: any, name: any) => [
                                                 name === 'total' ? new Intl.NumberFormat('en-US').format(val) : `${val}%`,
                                                 name === 'total' ? 'Visitors' : 'YoY Growth'
                                             ]}

@@ -24,36 +24,62 @@ export async function getIntlTourismData(filters: GlobalFiltersState) {
     const wheres: string[] = [];
 
     applyCommonFilters("", filters, params, wheres);
-    const wSql = wheres.length > 0 ? "WHERE " + wheres.join(" AND ") : "";
+
+    // Country Filter Logic
+    const hasCountry = filters.country && filters.country !== 'All';
+    let countryWhere = "";
+    if (hasCountry) {
+        countryWhere = "LOWER(country) LIKE ?";
+    }
+
+    const baseWheres = [...wheres];
+    const countryWheres = [...wheres];
+    const countryParams = [...params];
+    if (hasCountry) {
+        countryWheres.push(countryWhere);
+        countryParams.push(`%${filters.country.toLowerCase()}%`);
+    }
+
+    const wSqlDefault = baseWheres.length > 0 ? "AND " + baseWheres.join(" AND ") : "";
+    const wSqlCountry = countryWheres.length > 0 ? "WHERE " + countryWheres.join(" AND ") : "";
 
     // 1. Total arrivals
-    const totalRow = db.prepare(`SELECT SUM(visitors) as total FROM fast_facts WHERE gateway IN ('International Airports', 'Cruise (By Sea)', 'Land Borders Total') ${wheres.length > 0 ? "AND " + wheres.join(" AND ") : ""}`).get(...params) as any;
+    // If filtering by country, we can't use fast_facts because it lacks a country column. We must use border_entry_visa_country instead.
+    let globalTotal = 0;
+    if (hasCountry) {
+        const totalRow = db.prepare(`SELECT SUM(visitors) as total FROM border_entry_visa_country ${wSqlCountry}`).get(...countryParams) as any;
+        globalTotal = totalRow?.total || 0;
+    } else {
+        const totalRow = db.prepare(`SELECT SUM(visitors) as total FROM fast_facts WHERE gateway IN ('International Airports', 'Cruise (By Sea)', 'Land Borders Total') ${wSqlDefault}`).get(...params) as any;
+        globalTotal = totalRow?.total || 0;
+    }
 
     // 2. Arrivals by year (line chart)
-    const yearly = db.prepare(`SELECT year, SUM(visitors) as visitors FROM fast_facts WHERE gateway IN ('International Airports', 'Cruise (By Sea)', 'Land Borders Total') ${wheres.length > 0 ? "AND " + wheres.join(" AND ") : ""} GROUP BY year ORDER BY year`).all(...params) as any[];
+    let yearly = [];
+    if (hasCountry) {
+        yearly = db.prepare(`SELECT year, SUM(visitors) as visitors FROM border_entry_visa_country ${wSqlCountry} GROUP BY year ORDER BY year`).all(...countryParams) as any[];
+    } else {
+        yearly = db.prepare(`SELECT year, SUM(visitors) as visitors FROM fast_facts WHERE gateway IN ('International Airports', 'Cruise (By Sea)', 'Land Borders Total') ${wSqlDefault} GROUP BY year ORDER BY year`).all(...params) as any[];
+    }
 
     // 3. Top Visitor Countries
-    // We can use border_entry_visa_country joined if possible, but actually ASEAN arrivals have country data, and Border Entry Visa Country has "Country/Region"
-    // The safest is querying border_entry_visa_country where region != ''
     const countries = db.prepare(`
         SELECT country, SUM(visitors) as visitors 
         FROM border_entry_visa_country 
-        ${wSql} 
+        ${wSqlCountry} 
         GROUP BY country 
         ORDER BY visitors DESC 
         LIMIT 10
-    `).all(...params) as any[];
+    `).all(...(hasCountry ? countryParams : params)) as any[];
 
     // 4. ASEAN vs NON-ASEAN comparison
-    // We approximate ASEAN by summing all ASEAN countries and subtracting from Total
     const aseanRow = db.prepare(`
         SELECT SUM(visitors) as total 
         FROM asean_arrivals
-        ${wSql}
-    `).get(...params) as any;
+        ${wSqlCountry}
+    `).get(...(hasCountry ? countryParams : params)) as any;
 
     const aseanTotal = aseanRow?.total || 0;
-    const globalTotal = totalRow?.total || 0;
     const nonAseanTotal = Math.max(0, globalTotal - aseanTotal);
 
     const aseanComparison = [
