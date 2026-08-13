@@ -51,27 +51,27 @@ export default function ExpenditurePage() {
                         <KPICard
                             title="Total Expenditure"
                             value={`$${formatNumber(data?.totalExpenditure)}M`}
-                        icon={DollarSign}
-                        colorClass="from-emerald-400 to-teal-500"
-            />
+                            icon={DollarSign}
+                            colorClass="from-emerald-400 to-teal-500"
+                        />
                         <KPICard
                             title="Rev Per Visitor (Est)"
                             value={`$${formatNumber(data?.estimatedPerVisitor)}`}
-                        icon={HandCoins}
-                        colorClass="from-cyan-400 to-blue-600"
-            />
+                            icon={HandCoins}
+                            colorClass="from-cyan-400 to-blue-600"
+                        />
                         <KPICard
                             title="Daily Spend Target"
                             value={`$${formatNumber(data?.avgPerDay)}`}
-                        icon={Coins}
-                        colorClass="from-amber-400 to-orange-500"
-            />
+                            icon={Coins}
+                            colorClass="from-amber-400 to-orange-500"
+                        />
                         <KPICard
                             title="Avg Stay"
                             value={`${data?.avgLengthOfStay} Nights`}
-                        icon={TrendingUp}
-                        colorClass="from-purple-400 to-fuchsia-600"
-            />
+                            icon={TrendingUp}
+                            colorClass="from-purple-400 to-fuchsia-600"
+                        />
                     </div>
 
                     <div className="grid grid-cols-1 gap-6 mt-4">
@@ -92,11 +92,11 @@ export default function ExpenditurePage() {
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
                                             itemStyle={{ color: '#22d3ee' }}
-                                            formatter={(val: any, name: string) => [
-                                                name === 'Total Expenditure (US$)' ?`$${new Intl.NumberFormat('en-US').format(val)} M` : new Intl.NumberFormat('en-US').format(val),
-                                        name === 'Total Expenditure (US$)' ? 'Expenditure in USD (Millions)' : 'Tourist Arrivals'
-                        ]}
-                      />
+                                            formatter={(val: any, name: any) => [
+                                                name === 'Total Expenditure (US$)' ? `$${new Intl.NumberFormat('en-US').format(val)} M` : new Intl.NumberFormat('en-US').format(val),
+                                                name === 'Total Expenditure (US$)' ? 'Expenditure in USD (Millions)' : 'Tourist Arrivals'
+                                            ]}
+                                        />
                                         <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
                                         <Bar yAxisId="left" dataKey="Total Expenditure (US$)" fill="#10b981" radius={[4, 4, 0, 0]} barSize={40} />
                                         <Line yAxisId="right" type="monotone" dataKey="Tourist Arrivals" stroke="#06b6d4" strokeWidth={3} dot={{ r: 4, fill: "#06b6d4", strokeWidth: 2, stroke: "#020617" }} />

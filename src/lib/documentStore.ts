@@ -41,7 +41,7 @@ function collectionName(name: string) {
   return `${prefix}${name}`;
 }
 
-const destinationProfiles: DestinationProfile[] = [
+export const destinationProfiles: DestinationProfile[] = [
   { destination: 'Yangon', country: 'Myanmar', dailyCost: 42, safetyScore: 70, safetyNotes: 'Urban destination; use registered taxis and monitor local advisories.', peakMonths: ['November', 'December', 'January', 'February'], shoulderMonths: ['October', 'March'], visaRule: 'Most foreign passports should check eVisa or embassy requirements before travel.' },
   { destination: 'Mandalay', country: 'Myanmar', dailyCost: 38, safetyScore: 66, safetyNotes: 'Cultural city; plan transport between dispersed heritage sites.', peakMonths: ['November', 'December', 'January', 'February'], shoulderMonths: ['October', 'March'], visaRule: 'Check eVisa eligibility and approved entry points for your passport.' },
   { destination: 'Bagan', country: 'Myanmar', dailyCost: 48, safetyScore: 68, safetyNotes: 'Hot, open archaeological area; use licensed guides and carry water.', peakMonths: ['November', 'December', 'January', 'February'], shoulderMonths: ['October', 'March'], visaRule: 'Tourist visa/eVisa rules vary by nationality; verify before booking.' },
@@ -57,7 +57,11 @@ const destinationProfiles: DestinationProfile[] = [
   { destination: 'Tanintharyi Region', country: 'Myanmar', dailyCost: 58, safetyScore: 50, safetyNotes: 'Island and coastal access is seasonal; confirm boats and flights.', peakMonths: ['November', 'December', 'January', 'February', 'March'], shoulderMonths: ['October', 'April'], visaRule: 'Check entry point and regional permissions for your passport.' },
   { destination: 'Ayeyarwady Region', country: 'Myanmar', dailyCost: 36, safetyScore: 55, safetyNotes: 'Allow extra road time and confirm local transport.', peakMonths: ['November', 'December', 'January', 'February'], shoulderMonths: ['October', 'March'], visaRule: 'Verify tourist visa and destination access requirements.' },
   { destination: 'Naypyidaw', country: 'Myanmar', dailyCost: 40, safetyScore: 72, safetyNotes: 'Sprawling city; plan point-to-point transport in advance.', peakMonths: ['November', 'December', 'January', 'February'], shoulderMonths: ['October', 'March'], visaRule: 'Check current tourist visa requirements for your passport.' },
+  { destination: 'Bago Region', country: 'Myanmar', dailyCost: 38, safetyScore: 60, safetyNotes: 'Major transit hub and heritage site; use licensed transport.', peakMonths: ['November', 'December', 'January', 'February'], shoulderMonths: ['October', 'March'], visaRule: 'Standard tourist visa applies.' },
+  { destination: 'Kayah State', country: 'Myanmar', dailyCost: 45, safetyScore: 48, safetyNotes: 'Mountainous and remote; verify local access and transport availability.', peakMonths: ['November', 'December', 'January', 'February'], shoulderMonths: ['October', 'March'], visaRule: 'Check regional permits and current entry requirements.' },
+  { destination: 'Magway Region', country: 'Myanmar', dailyCost: 35, safetyScore: 50, safetyNotes: 'Central dry zone; carry water and confirm transport between sites.', peakMonths: ['November', 'December', 'January', 'February'], shoulderMonths: ['October', 'March'], visaRule: 'Standard tourist visa applies.' },
 ];
+
 
 async function seedMongo() {
   if (!mongoEnabled()) return;

@@ -11,7 +11,7 @@ import {
     Hotel,
     Banknote,
     MapPin
-    ,Sun, Moon, Languages, Lightbulb
+    , Sun, Moon, Languages, Lightbulb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreferences } from "@/components/AppPreferences";
@@ -25,13 +25,14 @@ const navItems = [
     { name: "Hotels & Accommodation", href: "/hotels", icon: Hotel },
     { name: "Expenditure", href: "/expenditure", icon: Banknote },
     { name: "Domestic Tourism", href: "/domestic", icon: MapPin },
+    { name: "Destinations Map", href: "/destinations", icon: Map },
     { name: "Decision Center", href: "/decisions", icon: Lightbulb },
 ];
 
 const myanmarLabels: Record<string, string> = {
     Overview: 'အနှစ်ချုပ်', 'International Tourism': 'နိုင်ငံတကာ ခရီးသွား', 'Time Trends': 'အချိန်လိုက် လမ်းကြောင်း',
     'Visa Analysis': 'ဗီဇာ ခွဲခြမ်းစိတ်ဖြာမှု', 'Entry Points': 'ဝင်ပေါက်များ', 'Hotels & Accommodation': 'ဟိုတယ်နှင့် တည်းခိုခန်း',
-    Expenditure: 'အသုံးစရိတ်', 'Domestic Tourism': 'ပြည်တွင်း ခရီးသွား', 'Decision Center': 'ဆုံးဖြတ်ချက် စင်တာ'
+    Expenditure: 'အသုံးစရိတ်', 'Domestic Tourism': 'ပြည်တွင်း ခရီးသွား', 'Destinations Map': 'ခရီးစဉ်များ မြေပုံ', 'Decision Center': 'ဆုံးဖြတ်ချက် စင်တာ'
 };
 
 export default function Sidebar() {
