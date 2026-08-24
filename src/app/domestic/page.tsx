@@ -104,7 +104,8 @@ export default function DomesticPage() {
                                     <ComposedChart data={data?.yearlyTrends || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                                         <XAxis dataKey="year" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                        <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
+                                        <YAxis yAxisId="left" stroke="#10b981" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatNumber} domain={[0, 'dataMax']} />
+                                        <YAxis yAxisId="right" orientation="right" stroke="#06b6d4" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatNumber} domain={[0, 'dataMax']} />
 
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
@@ -113,8 +114,8 @@ export default function DomesticPage() {
                                         />
                                         <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
 
-                                        <Area type="monotone" dataKey="domestic" name={t("Domestic Arrivals")} stroke="#10b981" fill="#10b981" fillOpacity={0.4} />
-                                        <Line type="monotone" dataKey="intl" name={t("Intl Arrivals")} stroke="#06b6d4" strokeWidth={3} dot={{ r: 4 }} />
+                                        <Area yAxisId="left" type="monotone" dataKey="domestic" name={t("Domestic Arrivals")} stroke="#10b981" fill="#10b981" fillOpacity={0.4} />
+                                        <Line yAxisId="right" type="monotone" dataKey="intl" name={t("Intl Arrivals")} stroke="#06b6d4" strokeWidth={3} dot={{ r: 4 }} />
                                     </ComposedChart>
                                 </ResponsiveContainer>
                             </div>

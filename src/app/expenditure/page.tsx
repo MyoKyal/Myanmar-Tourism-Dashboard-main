@@ -106,11 +106,15 @@ export default function ExpenditurePage() {
                                     <ComposedChart data={data?.yearlyTrends || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                                         <XAxis dataKey="year" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                        <YAxis yAxisId="left" stroke="#f59e0b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val: any) => `$${val}`} />
-                                        <YAxis yAxisId="right" orientation="right" stroke="#a855f7" fontSize={12} tickLine={false} axisLine={false} tickFormatter={nightsLabel} />
+                                        <YAxis yAxisId="left" stroke="#f59e0b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val: any) => `$${val}`} domain={[0, 'dataMax']} />
+                                        <YAxis yAxisId="right" orientation="right" stroke="#a855f7" fontSize={12} tickLine={false} axisLine={false} tickFormatter={nightsLabel} domain={[0, 'dataMax']} />
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
                                             itemStyle={{ color: '#22d3ee' }}
+                                            formatter={(val: any, name: any) => [
+                                                name === t("Average Length of Stay (Night)") ? nightsLabel(val) : `$${val}`,
+                                                name
+                                            ]}
                                         />
                                         <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
                                         <Line yAxisId="left" type="step" dataKey="Average Expenditure per day per person" name={t("Average Expenditure per day per person")} stroke="#f59e0b" strokeWidth={3} dot={false} />
