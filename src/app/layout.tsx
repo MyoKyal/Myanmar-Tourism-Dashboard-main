@@ -28,7 +28,7 @@ export default function RootLayout({
           <div className="flex-1 h-screen overflow-y-auto relative z-10 w-full flex flex-col">
             <MobileHeader />
             <main className="flex-1">
-              <div className="p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl mx-auto min-h-full">
+              <div className="p-4 sm:p-6 md:p-8 lg:p-10 max-w-[1600px] mx-auto min-h-full">
                 <FilterProvider>{children}</FilterProvider>
               </div>
             </main>
