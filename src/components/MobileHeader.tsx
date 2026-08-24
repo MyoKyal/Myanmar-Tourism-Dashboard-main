@@ -4,14 +4,14 @@ import { Menu, Globe2 } from "lucide-react";
 import { usePreferences } from "@/components/AppPreferences";
 
 export default function MobileHeader() {
-    const { language, setMobileNavOpen } = usePreferences();
+    const { language, setMobileNavOpen, t } = usePreferences();
 
     return (
         <div className="lg:hidden sticky top-0 z-30 h-14 flex items-center gap-3 px-4 border-b border-white/10 bg-slate-900/70 backdrop-blur-xl mobile-header">
             <button
                 onClick={() => setMobileNavOpen(true)}
                 className="p-2 -ml-2 rounded-lg text-slate-300 hover:bg-white/10"
-                aria-label="Open navigation"
+                aria-label={t("Open navigation")}
             >
                 <Menu className="w-5 h-5" />
             </button>

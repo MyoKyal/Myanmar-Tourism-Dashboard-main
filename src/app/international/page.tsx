@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useGlobalFilters } from "@/lib/FilterContext";
+import { useLiveData } from "@/lib/useLiveData";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getIntlTourismData } from "@/actions/intl";
 import { KPICard } from "@/components/KPICard";
+import { LiveIndicator } from "@/components/LiveIndicator";
+import { usePreferences } from "@/components/AppPreferences";
 import { Globe2, Users, Earth, TrendingUp } from "lucide-react";
 import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,30 +17,18 @@ const PIE_COLORS = ['#06b6d4', '#a855f7', '#10b981', '#f59e0b', '#f43f5e'];
 
 export default function InternationalPage() {
     const { filters } = useGlobalFilters();
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<any>(null);
-
-    useEffect(() => {
-        async function fetchData() {
-            setLoading(true);
-            try {
-                const result = await getIntlTourismData(filters);
-                setData(result);
-            } catch (err) {
-                console.error("Failed to load intl data", err);
-            }
-            setLoading(false);
-        }
-        fetchData();
-    }, [filters]);
+    const { t } = usePreferences();
+    const { data, loading, lastUpdated } = useLiveData(() => getIntlTourismData(filters), [filters]);
 
     const formatNumber = (num: number) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(num || 0);
+    const aseanComparison = data?.aseanComparison?.map((row: any) => ({ ...row, name: t(row.name) }));
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-500">
             <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">International Tourism Analysis</h1>
-                <p className="text-slate-400">Deep dive into international visitor origins and travel footprints.</p>
+                <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">{t("International Tourism Analysis")}</h1>
+                <p className="text-slate-400">{t("Deep dive into international visitor origins and travel footprints.")}</p>
+                <div className="mt-2"><LiveIndicator lastUpdated={lastUpdated} /></div>
             </div>
 
             <GlobalFilters showYear showCountry />
@@ -51,20 +41,20 @@ export default function InternationalPage() {
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <KPICard
-                            title="Total Intl Visitors"
-                            value={formatNumber(data?.totalArrivals)}
+                            title={t("Total Intl Visitors")}
+                            value={formatNumber(data?.totalArrivals ?? 0)}
                             icon={Users}
                         />
                         <KPICard
-                            title="ASEAN Visitors"
-                            value={formatNumber(data?.aseanComparison?.[0]?.value)}
+                            title={t("ASEAN Visitors")}
+                            value={formatNumber(data?.aseanComparison?.[0]?.value ?? 0)}
                             icon={Globe2}
                             colorClass="from-emerald-400 to-teal-600"
                         />
                         <KPICard
-                            title="Global Contribution"
-                            value={data?.totalArrivals > 0 ? ((data?.aseanComparison?.[1]?.value / data?.totalArrivals) * 100).toFixed(1) + '%' : '0%'}
-                            subtitle="From Non-ASEAN Nations"
+                            title={t("Global Contribution")}
+                            value={data?.totalArrivals && data.totalArrivals > 0 ? ((data?.aseanComparison?.[1]?.value / data.totalArrivals) * 100).toFixed(1) + '%' : '0%'}
+                            subtitle={t("From Non-ASEAN Nations")}
                             icon={Earth}
                             colorClass="from-purple-400 to-fuchsia-600"
                         />
@@ -75,7 +65,7 @@ export default function InternationalPage() {
                         <div className="glass-panel p-6 flex flex-col h-[400px]">
                             <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
                                 <div className="w-2 h-6 bg-cyan-500 rounded-sm" />
-                                Top 10 Visitor Countries
+                                {t("Top 10 Visitor Countries")}
                             </h3>
                             <div className="flex-1 w-full h-full min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -88,7 +78,7 @@ export default function InternationalPage() {
                                             cursor={{ fill: '#1e293b' }}
                                             formatter={(val: any) => new Intl.NumberFormat('en-US').format(val)}
                                         />
-                                        <Bar dataKey="visitors" fill="#06b6d4" radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="visitors" name={t("Visitors")} fill="#06b6d4" radius={[0, 4, 4, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
@@ -98,13 +88,13 @@ export default function InternationalPage() {
                         <div className="glass-panel p-6 flex flex-col h-[400px]">
                             <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
                                 <div className="w-2 h-6 bg-emerald-500 rounded-sm" />
-                                ASEAN vs Non-ASEAN
+                                {t("ASEAN vs Non-ASEAN")}
                             </h3>
                             <div className="flex-1 w-full h-full min-h-0 relative">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
-                                            data={data?.aseanComparison || []}
+                                            data={aseanComparison || []}
                                             cx="50%"
                                             cy="50%"
                                             innerRadius={60}
@@ -113,7 +103,7 @@ export default function InternationalPage() {
                                             dataKey="value"
                                             stroke="rgba(255,255,255,0.1)"
                                         >
-                                            {data?.aseanComparison?.map((entry: any, index: number) => (
+                                            {aseanComparison?.map((entry: any, index: number) => (
                                                 <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#10b981' : '#a855f7'} />
                       ))}
                                         </Pie>

@@ -37,7 +37,7 @@ const myanmarLabels: Record<string, string> = {
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const { language, setLanguage, theme, toggleTheme, mobileNavOpen, setMobileNavOpen } = usePreferences();
+    const { language, setLanguage, theme, toggleTheme, mobileNavOpen, setMobileNavOpen, t } = usePreferences();
 
     return (
         <>
@@ -64,7 +64,7 @@ export default function Sidebar() {
                     <button
                         onClick={() => setMobileNavOpen(false)}
                         className="lg:hidden p-1.5 rounded-md text-slate-400 hover:bg-white/10 hover:text-slate-200"
-                        aria-label="Close navigation"
+                        aria-label={t("Close navigation")}
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -98,8 +98,8 @@ export default function Sidebar() {
 
                 <div className="p-4 border-t border-white/10 text-xs text-slate-500 space-y-3">
                     <div className="flex gap-2">
-                        <button onClick={() => setLanguage(language === 'en' ? 'my' : 'en')} className="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-300/50 px-2 py-1.5 hover:bg-slate-100/70" title="Change language"><Languages className="w-3.5 h-3.5" /> {language === 'en' ? 'မြန်မာ' : 'English'}</button>
-                        <button onClick={toggleTheme} className="rounded-md border border-slate-300/50 px-2 py-1.5 hover:bg-slate-100/70" title="Toggle theme">{theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}</button>
+                        <button onClick={() => setLanguage(language === 'en' ? 'my' : 'en')} className="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-300/50 px-2 py-1.5 hover:bg-slate-100/70" title={t("Change language")}><Languages className="w-3.5 h-3.5" /> {language === 'en' ? 'မြန်မာ' : 'English'}</button>
+                        <button onClick={toggleTheme} className="rounded-md border border-slate-300/50 px-2 py-1.5 hover:bg-slate-100/70" title={t("Toggle theme")}>{theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}</button>
                     </div>
                     <div>{language === 'my' ? 'ဒေတာ အပ်ဒိတ်: ၂၀၂၅ (ခန့်မှန်း)' : 'Data updated: 2025 (estimate)'}</div>
                 </div>

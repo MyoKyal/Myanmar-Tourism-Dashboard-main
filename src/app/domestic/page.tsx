@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useGlobalFilters } from "@/lib/FilterContext";
+import { useLiveData } from "@/lib/useLiveData";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getDomesticData } from "@/actions/domestic";
 import { KPICard } from "@/components/KPICard";
+import { LiveIndicator } from "@/components/LiveIndicator";
+import { usePreferences } from "@/components/AppPreferences";
 import { Users, UserPlus, MapPin, TentTree } from "lucide-react";
 import {
     Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -13,32 +15,20 @@ import {
 
 export default function DomesticPage() {
     const { filters } = useGlobalFilters();
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<any>(null);
-
-    useEffect(() => {
-        async function fetchData() {
-            setLoading(true);
-            try {
-                const result = await getDomesticData(filters);
-                setData(result);
-            } catch (err) {
-                console.error("Failed to load domestic data", err);
-            }
-            setLoading(false);
-        }
-        fetchData();
-    }, [filters]);
+    const { t, language } = usePreferences();
+    const { data, loading, lastUpdated } = useLiveData(() => getDomesticData(filters), [filters]);
 
     const formatNumber = (num: number) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(num || 0);
 
     const bestRegion = data?.regions && data.regions.length > 0 ? data.regions[0] : null;
+    const visitorsSubtitle = (n: number) => language === 'my' ? `ဧည့်သည် ${formatNumber(n)} ဦး` : `${formatNumber(n)} Visitors`;
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-500">
             <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Domestic Tourism Analysis</h1>
-                <p className="text-slate-400">Evaluate local tourism footprints and regional popularity among citizens.</p>
+                <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">{t("Domestic Tourism Analysis")}</h1>
+                <p className="text-slate-400">{t("Evaluate local tourism footprints and regional popularity among citizens.")}</p>
+                <div className="mt-2"><LiveIndicator lastUpdated={lastUpdated} /></div>
             </div>
 
             <GlobalFilters showYear />
@@ -51,27 +41,27 @@ export default function DomesticPage() {
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <KPICard
-                            title="Total Domestic Visitors"
-                            value={formatNumber(data?.totalDomestic)}
+                            title={t("Total Domestic Visitors")}
+                            value={formatNumber(data?.totalDomestic ?? 0)}
                             icon={Users}
                             colorClass="from-emerald-400 to-teal-600"
                         />
                         <KPICard
-                            title="Locals vs Internationals"
-                            value={data?.totalDomestic > 0 ?`${((data.totalDomestic / (data.totalDomestic + data.totalIntl)) * 100).toFixed(1)}%` : '0%'}
-                        subtitle="Share of Total Tourism"
+                            title={t("Locals vs Internationals")}
+                            value={data?.totalDomestic && data.totalDomestic > 0 ?`${((data.totalDomestic / (data.totalDomestic + data.totalIntl)) * 100).toFixed(1)}%` : '0%'}
+                        subtitle={t("Share of Total Tourism")}
                         icon={UserPlus}
                         colorClass="from-cyan-400 to-blue-500"
             />
                         <KPICard
-                            title="Top Destination"
-                            value={bestRegion ? bestRegion.name : 'N/A'}
-                            subtitle={bestRegion ?`${formatNumber(bestRegion.visitors)} Visitors` : ''}
+                            title={t("Top Destination")}
+                            value={bestRegion ? bestRegion.name : t("N/A")}
+                            subtitle={bestRegion ? visitorsSubtitle(bestRegion.visitors) : ''}
                         icon={MapPin}
                         colorClass="from-rose-400 to-pink-600"
             />
                         <KPICard
-                            title="Regions Tracked"
+                            title={t("Regions Tracked")}
                             value={data?.regions?.length || 0}
                             icon={TentTree}
                             colorClass="from-amber-400 to-orange-500"
@@ -84,7 +74,7 @@ export default function DomesticPage() {
                         <div className="glass-panel p-6 flex flex-col h-[500px]">
                             <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
                                 <div className="w-2 h-6 bg-rose-500 rounded-sm" />
-                                Regional Popularity Ranking
+                                {t("Regional Popularity Ranking")}
                             </h3>
                             <div className="flex-1 w-full h-full min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -97,7 +87,7 @@ export default function DomesticPage() {
                                             cursor={{ fill: '#1e293b' }}
                                             formatter={(val: any) => new Intl.NumberFormat('en-US').format(val)}
                                         />
-                                        <Bar dataKey="visitors" fill="#f43f5e" radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="visitors" name={t("Visitors")} fill="#f43f5e" radius={[0, 4, 4, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
@@ -107,7 +97,7 @@ export default function DomesticPage() {
                         <div className="glass-panel p-6 flex flex-col h-[500px]">
                             <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
                                 <div className="w-2 h-6 bg-emerald-500 rounded-sm" />
-                                Domestic vs International Year-over-Year
+                                {t("Domestic vs International Year-over-Year")}
                             </h3>
                             <div className="flex-1 w-full h-full min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -123,8 +113,8 @@ export default function DomesticPage() {
                                         />
                                         <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
 
-                                        <Area type="monotone" dataKey="domestic" name="Domestic Arrivals" stroke="#10b981" fill="#10b981" fillOpacity={0.4} />
-                                        <Line type="monotone" dataKey="intl" name="Intl Arrivals" stroke="#06b6d4" strokeWidth={3} dot={{ r: 4 }} />
+                                        <Area type="monotone" dataKey="domestic" name={t("Domestic Arrivals")} stroke="#10b981" fill="#10b981" fillOpacity={0.4} />
+                                        <Line type="monotone" dataKey="intl" name={t("Intl Arrivals")} stroke="#06b6d4" strokeWidth={3} dot={{ r: 4 }} />
                                     </ComposedChart>
                                 </ResponsiveContainer>
                             </div>

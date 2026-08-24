@@ -1,6 +1,7 @@
 "use client";
 
 import { Download } from "lucide-react";
+import { usePreferences } from "@/components/AppPreferences";
 
 interface ExportCsvButtonProps {
     data: Record<string, unknown>[] | null | undefined;
@@ -18,7 +19,9 @@ function toCsv(data: Record<string, unknown>[]): string {
     return [headers.join(","), ...rows].join("\n");
 }
 
-export function ExportCsvButton({ data, filename, label = "Export CSV" }: ExportCsvButtonProps) {
+export function ExportCsvButton({ data, filename, label }: ExportCsvButtonProps) {
+    const { t } = usePreferences();
+    const resolvedLabel = label ?? t("Export CSV");
     const hasData = !!data && data.length > 0;
 
     const handleExport = () => {
@@ -42,7 +45,7 @@ export function ExportCsvButton({ data, filename, label = "Export CSV" }: Export
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800/80 border border-slate-700/50 text-sm font-medium text-slate-300 hover:bg-slate-700/80 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
             <Download className="w-4 h-4" />
-            {label}
+            {resolvedLabel}
         </button>
     );
 }

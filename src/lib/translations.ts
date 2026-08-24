@@ -1,0 +1,188 @@
+// Flat English -> Burmese lookup for simple, standalone UI chrome (titles, headers, labels,
+// buttons, tooltip labels). Composite/templated sentences (e.g. "X arrivals", "{n}yr trend")
+// are translated inline at their call site instead, since word-for-word lookup doesn't work
+// once numbers or other dynamic values are spliced into the middle of a sentence.
+export const MY: Record<string, string> = {
+  // Shared / filters
+  "Reset Filters": "စစ်ထုတ်မှု ပြန်လည်သတ်မှတ်ရန်",
+  "Year": "နှစ်",
+  "Month": "လ",
+  "Visa Type": "ဗီဇာအမျိုးအစား",
+  "Country": "နိုင်ငံ",
+  "Type to filter...": "စစ်ထုတ်ရန် ရိုက်ထည့်ပါ...",
+  "All": "အားလုံး",
+  "January": "ဇန်နဝါရီ", "February": "ဖေဖော်ဝါရီ", "March": "မတ်", "April": "ဧပြီ",
+  "May": "မေ", "June": "ဇွန်", "July": "ဇူလိုင်", "August": "သြဂုတ်",
+  "September": "စက်တင်ဘာ", "October": "အောက်တိုဘာ", "November": "နိုဝင်ဘာ", "December": "ဒီဇင်ဘာ",
+  "Tourist": "ခရီးသွား", "Business": "စီးပွားရေး", "Others": "အခြား",
+  "Open navigation": "လမ်းညွှန်ဇယား ဖွင့်ရန်",
+  "Close navigation": "လမ်းညွှန်ဇယား ပိတ်ရန်",
+  "Change language": "ဘာသာစကား ပြောင်းရန်",
+  "Toggle theme": "အပြင်အဆင် ပြောင်းရန်",
+  "Export CSV": "CSV ထုတ်ယူရန်",
+  "Export Arrivals CSV": "လာရောက်မှုဒေတာ CSV ထုတ်ယူရန်",
+  "Export Trends CSV": "လမ်းကြောင်းဒေတာ CSV ထုတ်ယူရန်",
+  "N/A": "မရှိ",
+
+  // Live / auto-refresh indicator
+  "Live": "တိုက်ရိုက်",
+  "Updating…": "အပ်ဒိတ်လုပ်နေသည်…",
+  "just now": "ယခုလေးတင်",
+
+  // Overview
+  "Main Overview": "အနှစ်ချုပ်",
+  "High-level analysis of Myanmar's tourism performance.": "မြန်မာနိုင်ငံ ခရီးသွားလုပ်ငန်း စွမ်းဆောင်ရည်၏ အနှစ်ချုပ် ခွဲခြမ်းစိတ်ဖြာမှု။",
+  "Intl Visitors": "နိုင်ငံတကာ ဧည့်သည်များ",
+  "Domestic Visitors": "ပြည်တွင်းဧည့်သည်များ",
+  "Total Hotels": "စုစုပေါင်း ဟိုတယ်များ",
+  "Total Rooms": "စုစုပေါင်း အခန်းများ",
+  "Expenditure ($)": "အသုံးစရိတ် ($)",
+  "International Arrivals by Year": "နှစ်အလိုက် နိုင်ငံတကာ လာရောက်မှု",
+  "Monthly Aggregate Interntional Visitors": "လစဉ် နိုင်ငံတကာ ဧည့်သည် စုစုပေါင်း",
+
+  // International
+  "International Tourism Analysis": "နိုင်ငံတကာ ခရီးသွားလုပ်ငန်း ခွဲခြမ်းစိတ်ဖြာမှု",
+  "Deep dive into international visitor origins and travel footprints.": "နိုင်ငံတကာ ဧည့်သည်များ၏ မူလနေရာနှင့် ခရီးသွားပုံစံများကို အသေးစိတ် လေ့လာခြင်း။",
+  "Total Intl Visitors": "စုစုပေါင်း နိုင်ငံတကာ ဧည့်သည်",
+  "ASEAN Visitors": "အာဆီယံ ဧည့်သည်များ",
+  "Global Contribution": "ကမ္ဘာလုံးဆိုင်ရာ ပါဝင်မှု",
+  "From Non-ASEAN Nations": "အာဆီယံမဟုတ်သော နိုင်ငံများမှ",
+  "Top 10 Visitor Countries": "ထိပ်တန်း ဧည့်သည် နိုင်ငံ ၁၀ နိုင်ငံ",
+  "ASEAN vs Non-ASEAN": "အာဆီယံ နှင့် အာဆီယံမဟုတ်",
+  "ASEAN": "အာဆီယံ",
+  "Non-ASEAN": "အာဆီယံမဟုတ်",
+  "Domestic": "ပြည်တွင်း",
+  "International": "နိုင်ငံတကာ",
+
+  // Trends
+  "Time Trend Analysis": "အချိန်နှင့်အမျှ လမ်းကြောင်း ခွဲခြမ်းစိတ်ဖြာမှု",
+  "Evaluate year-over-year growth, monthly seasonality, and pandemic impact.": "နှစ်စဉ်တိုးတက်မှု၊ လစဉ်ရာသီအလိုက်ပြောင်းလဲမှုနှင့် ကပ်ရောဂါသက်ရောက်မှုကို အကဲဖြတ်ပါ။",
+  "Latest Year Growth": "လတ်တလော နှစ်တိုးတက်မှု",
+  "Best Performing Month": "စွမ်းဆောင်ရည်အကောင်းဆုံး လ",
+  "Pre-COVID Peak": "ကိုဗစ်မတိုင်မီ အထွတ်အထိပ်",
+  "Forecast": "ခန့်မှန်းချက်",
+  "Year-over-Year Growth Trend": "နှစ်စဉ် တိုးတက်မှု လမ်းကြောင်း",
+  "Visitors": "ဧည့်သည်များ",
+  "YoY Growth": "နှစ်စဉ်တိုးတက်မှု",
+  "Monthly Seasonality": "လစဉ် ရာသီအလိုက်ပြောင်းလဲမှု",
+  "Pandemic Impact Timeline": "ကပ်ရောဂါ သက်ရောက်မှု အချိန်ဇယား",
+  "Pre-COVID (15-19)": "ကိုဗစ်မတိုင်မီ (၁၅-၁၉)",
+  "COVID (20-22)": "ကိုဗစ်ကာလ (၂၀-၂၂)",
+  "Recovery (23-24)": "ပြန်လည်ထူထောင်ရေး (၂၃-၂၄)",
+
+  // Visas
+  "Visa Analysis": "ဗီဇာ ခွဲခြမ်းစိတ်ဖြာမှု",
+  "Discover breakdown of visitor types and their historical trends.": "ဧည့်သည်အမျိုးအစားများနှင့် သမိုင်းဝင် လမ်းကြောင်းများကို လေ့လာပါ။",
+  "Tourist Visas": "ခရီးသွားဗီဇာများ",
+  "Business Visas": "စီးပွားရေးဗီဇာများ",
+  "Total Visas Processed": "စုစုပေါင်း ဗီဇာ လုပ်ဆောင်မှု",
+  "Visa Type Distribution": "ဗီဇာအမျိုးအစား ခွဲဝေမှု",
+  "Historical Visa Trends": "သမိုင်းဝင် ဗီဇာ လမ်းကြောင်းများ",
+  "arrivals": "ဦး ရောက်ရှိမှု",
+
+  // Entry points
+  "Entry Point Analysis": "ဝင်ပေါက် ခွဲခြမ်းစိတ်ဖြာမှု",
+  "Discover how visitors enter Myanmar via Airports, Seaports, and Land Borders.": "လေဆိပ်၊ ရေဆိပ်နှင့် နယ်စပ်များမှတစ်ဆင့် ဧည့်သည်များ မြန်မာနိုင်ငံသို့ ဝင်ရောက်ပုံကို လေ့လာပါ။",
+  "Total Entries": "စုစုပေါင်း ဝင်ရောက်မှု",
+  "Airports": "လေဆိပ်များ",
+  "Land Borders": "နယ်စပ်များ",
+  "Seaports": "ရေဆိပ်များ",
+  "Category Contribution": "အမျိုးအစားအလိုက် ပါဝင်မှု",
+  "Airports Breakdown": "လေဆိပ်အလိုက် ခွဲခြမ်းမှု",
+  "Historical Transport Method Trends": "သမိုင်းဝင် သွားလာမှုနည်းလမ်း လမ်းကြောင်းများ",
+
+  // Hotels
+  "Hotel & Accommodation": "ဟိုတယ်နှင့် တည်းခိုခန်း",
+  "Discover hotel capacity, room availability, and infrastructure across regions.": "ဒေသအလိုက် ဟိုတယ်စွမ်းဆောင်ရည်၊ အခန်းရရှိနိုင်မှုနှင့် အခြေခံအဆောက်အအုံများကို လေ့လာပါ။",
+  "Avg Rooms Per Hotel": "ဟိုတယ်တစ်ခုလျှင် ပျမ်းမျှ အခန်းအရေအတွက်",
+  "Top Regions by Capacity": "စွမ်းဆောင်ရည်အလိုက် ထိပ်တန်းဒေသများ",
+  "Rooms": "အခန်းများ",
+  "Hotels": "ဟိုတယ်များ",
+  "Hotel Capacity Growth": "ဟိုတယ်စွမ်းဆောင်ရည် တိုးတက်မှု",
+  "Total Rooms Trend": "စုစုပေါင်း အခန်း လမ်းကြောင်း",
+  "Total Hotels Trend": "စုစုပေါင်း ဟိုတယ် လမ်းကြောင်း",
+
+  // Expenditure
+  "Tourism Expenditure": "ခရီးသွားလုပ်ငန်း အသုံးစရိတ်",
+  "Analyze the economic impact, foreign spending, and financial trends of tourism.": "ခရီးသွားလုပ်ငန်း၏ စီးပွားရေးသက်ရောက်မှု၊ နိုင်ငံခြားအသုံးစရိတ်နှင့် ဘဏ္ဍာရေးလမ်းကြောင်းများကို ခွဲခြမ်းစိတ်ဖြာပါ။",
+  "Total Expenditure": "စုစုပေါင်း အသုံးစရိတ်",
+  "Rev Per Visitor (Est)": "ဧည့်သည်တစ်ဦးလျှင် ဝင်ငွေ (ခန့်မှန်း)",
+  "Daily Spend Target": "နေ့စဉ် အသုံးစရိတ် ပန်းတိုင်",
+  "Avg Stay": "ပျမ်းမျှ နေထိုင်ရက်",
+  "Nights": "ညများ",
+  "Expenditure vs Tourist Arrivals Growth": "အသုံးစရိတ် နှင့် ဧည့်သည်လာရောက်မှု တိုးတက်ရေး",
+  "Expenditure in USD (Millions)": "အသုံးစရိတ် (သန်း ဒေါ်လာ)",
+  "Tourist Arrivals": "ဧည့်သည်လာရောက်မှု",
+  "Average Spend per Day vs Average Length of Stay": "ပျမ်းမျှ နေ့စဉ်အသုံးစရိတ် နှင့် ပျမ်းမျှနေထိုင်ရက်",
+  "Average Expenditure per day per person": "တစ်ဦးလျှင် နေ့စဉ်ပျမ်းမျှ အသုံးစရိတ်",
+  "Average Length of Stay (Night)": "ပျမ်းမျှ နေထိုင်ရက် (ညအရေအတွက်)",
+
+  // Domestic
+  "Domestic Tourism Analysis": "ပြည်တွင်း ခရီးသွားလုပ်ငန်း ခွဲခြမ်းစိတ်ဖြာမှု",
+  "Evaluate local tourism footprints and regional popularity among citizens.": "ပြည်တွင်းခရီးသွားပုံစံများနှင့် ပြည်သူများကြားရှိ ဒေသကျော်ကြားမှုကို အကဲဖြတ်ပါ။",
+  "Total Domestic Visitors": "စုစုပေါင်း ပြည်တွင်းဧည့်သည်",
+  "Locals vs Internationals": "ပြည်တွင်း နှင့် နိုင်ငံတကာ",
+  "Share of Total Tourism": "စုစုပေါင်း ခရီးသွားလုပ်ငန်း၏ ရာခိုင်နှုန်း",
+  "Top Destination": "ထိပ်တန်း ခရီးစဉ်",
+  "Regions Tracked": "စောင့်ကြည့်ထားသော ဒေသများ",
+  "Regional Popularity Ranking": "ဒေသအလိုက် ကျော်ကြားမှု အဆင့်သတ်မှတ်ချက်",
+  "Domestic vs International Year-over-Year": "ပြည်တွင်းနှင့် နိုင်ငံတကာ နှစ်စဉ်နှိုင်းယှဉ်ချက်",
+  "Domestic Arrivals": "ပြည်တွင်းလာရောက်မှု",
+  "Intl Arrivals": "နိုင်ငံတကာလာရောက်မှု",
+
+  // Destinations
+  "Interactive Destination Map": "အပြန်အလှန် ဆက်သွယ်နိုင်သော ခရီးစဉ်မြေပုံ",
+  "Explore travel metrics and best seasons visually across Myanmar's regions.": "မြန်မာနိုင်ငံ၏ ဒေသများတစ်လျှောက် ခရီးသွားကိန်းဂဏန်းများနှင့် အကောင်းဆုံးရာသီများကို မြင်ယောင်လေ့လာပါ။",
+  "Myanmar State & Region Metrics": "မြန်မာနိုင်ငံ ပြည်နယ်နှင့် တိုင်းဒေသကြီး ကိန်းဂဏန်းများ",
+
+  // Destinations map tooltip
+  "Unknown": "မသိ",
+  "Travel Guide": "ခရီးသွားလမ်းညွှန်",
+  "Est. Daily Cost:": "ခန့်မှန်း နေ့စဉ်စရိတ်:",
+  "Safety Score:": "လုံခြုံရေး ရမှတ်:",
+  "Visitors:": "ဧည့်သည်များ:",
+  "Hotels:": "ဟိုတယ်များ:",
+  "rooms": "အခန်း",
+  "Peak Season:": "အကောင်းဆုံးရာသီ:",
+  "Visitor Density": "ဧည့်သည်ထူထပ်မှု",
+  "Low": "နည်း",
+  "High": "များ",
+
+  // Decisions — form
+  "Budget / person ($)": "ဘတ်ဂျက် / တစ်ဦး ($)",
+  "Passport nationality": "နိုင်ငံကူးလက်မှတ် နိုင်ငံသား",
+  "e.g. Thailand": "ဥပမာ- ထိုင်း",
+  "Days": "ရက်များ",
+  "Travellers": "ခရီးသွားသူများ",
+  "Purpose": "ရည်ရွယ်ချက်",
+  "Leisure": "အပန်းဖြေ",
+  "Family": "မိသားစု",
+  "Region": "ဒေသ",
+  "Best fit": "အသင့်တော်ဆုံး",
+  "Yangon": "ရန်ကုန်", "Mandalay": "မန္တလေး", "Bagan": "ပုဂံ", "Inle Lake": "အင်းလေးကန်",
+  "Shan State": "ရှမ်းပြည်နယ်", "Mon State": "မွန်ပြည်နယ်", "Rakhine State": "ရခိုင်ပြည်နယ်",
+  "Chin State": "ချင်းပြည်နယ်", "Kayin State": "ကရင်ပြည်နယ်", "Kachin State": "ကချင်ပြည်နယ်",
+  "Sagaing Region": "စစ်ကိုင်းတိုင်းဒေသကြီး", "Tanintharyi Region": "တနင်္သာရီတိုင်းဒေသကြီး",
+  "Ayeyarwady Region": "ဧရာဝတီတိုင်းဒေသကြီး", "Naypyidaw": "နေပြည်တော်", "Beach / Ngapali": "ကမ်းခြေ / ငပလီ",
+
+  // Decisions — result
+  "Planned spend": "စီစဉ်ထားသော အသုံးစရိတ်",
+  "Reserve": "အရန်ငွေ",
+  "Daily / person": "နေ့စဉ် / တစ်ဦး",
+  "typical": "ပုံမှန်",
+  "Safety score": "လုံခြုံရေး ရမှတ်",
+  "Visa:": "ဗီဇာ:",
+  "Seasonality:": "ရာသီအလိုက်:",
+  "Peak": "အထွတ်အထိပ်ရာသီ",
+  "varies": "အမျိုးမျိုးကွဲပြား",
+  "Safety:": "လုံခြုံရေး:",
+  "low": "နည်း", "medium": "အလယ်အလတ်", "high": "များ",
+  "budget risk": "ဘတ်ဂျက်အန္တရာယ်",
+  "confidence": "ယုံကြည်မှု",
+  "Recommendation": "အကြံပြုချက်",
+};
+
+export function translate(text: string, language: "en" | "my"): string {
+  if (language !== "my") return text;
+  return MY[text] ?? text;
+}

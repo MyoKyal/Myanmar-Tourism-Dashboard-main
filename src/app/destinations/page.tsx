@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useGlobalFilters } from "@/lib/FilterContext";
+import { useLiveData } from "@/lib/useLiveData";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getDestinationsMapData } from "@/actions/destinations";
+import { LiveIndicator } from "@/components/LiveIndicator";
+import { usePreferences } from "@/components/AppPreferences";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
 
@@ -19,31 +21,15 @@ const MapComponent = dynamic(() => import("./MapComponent"), {
 
 export default function DestinationsPage() {
     const { filters } = useGlobalFilters();
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<any>(null);
-
-    useEffect(() => {
-        let mounted = true;
-        async function load() {
-            setLoading(true);
-            try {
-                const res = await getDestinationsMapData(filters);
-                if (mounted) setData(res);
-            } catch (err) {
-                console.error("Failed to load map data:", err);
-            } finally {
-                if (mounted) setLoading(false);
-            }
-        }
-        load();
-        return () => { mounted = false; };
-    }, [filters]);
+    const { t } = usePreferences();
+    const { data, loading, lastUpdated } = useLiveData(() => getDestinationsMapData(filters), [filters]);
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-500">
             <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Interactive Destination Map</h1>
-                <p className="text-slate-400">Explore travel metrics and best seasons visually across Myanmar's regions.</p>
+                <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">{t("Interactive Destination Map")}</h1>
+                <p className="text-slate-400">{t("Explore travel metrics and best seasons visually across Myanmar's regions.")}</p>
+                <div className="mt-2"><LiveIndicator lastUpdated={lastUpdated} /></div>
             </div>
 
             <GlobalFilters showYear />
@@ -57,7 +43,7 @@ export default function DestinationsPage() {
                     <div className="glass-panel p-6 flex flex-col min-h-[600px] lg:col-span-12">
                         <h3 className="text-lg font-bold mb-4 text-slate-100 flex items-center gap-2">
                             <div className="w-2 h-6 bg-cyan-500 rounded-sm" />
-                            Myanmar State & Region Metrics
+                            {t("Myanmar State & Region Metrics")}
                         </h3>
                         <div className="flex-1 w-full bg-slate-900/50 rounded-xl overflow-hidden relative">
                             {data && <MapComponent data={data} />}

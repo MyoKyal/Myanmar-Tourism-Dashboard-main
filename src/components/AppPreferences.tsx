@@ -1,12 +1,14 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import { translate } from '@/lib/translations';
 
 type Language = 'en' | 'my';
 type Preferences = {
   language: Language; setLanguage: (language: Language) => void;
   theme: 'light' | 'dark'; toggleTheme: () => void;
   mobileNavOpen: boolean; setMobileNavOpen: (open: boolean) => void;
+  t: (text: string) => string;
 };
 const PreferencesContext = createContext<Preferences | null>(null);
 
@@ -25,7 +27,8 @@ export function AppPreferences({ children }: { children: React.ReactNode }) {
     window.localStorage.setItem('tourism-theme', theme);
   }, [theme]);
   useEffect(() => window.localStorage.setItem('tourism-language', language), [language]);
-  return <PreferencesContext.Provider value={{ language, setLanguage, theme, toggleTheme: () => setTheme((value) => value === 'light' ? 'dark' : 'light'), mobileNavOpen, setMobileNavOpen }}>{children}</PreferencesContext.Provider>;
+  const t = (text: string) => translate(text, language);
+  return <PreferencesContext.Provider value={{ language, setLanguage, theme, toggleTheme: () => setTheme((value) => value === 'light' ? 'dark' : 'light'), mobileNavOpen, setMobileNavOpen, t }}>{children}</PreferencesContext.Provider>;
 }
 
 export function usePreferences() {

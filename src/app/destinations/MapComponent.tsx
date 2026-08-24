@@ -4,12 +4,14 @@ import React, { useState, useMemo } from "react";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import myanmarGeoJson from "./myanmar_state_region.json";
 import { scaleLinear } from "d3-scale";
+import { usePreferences } from "@/components/AppPreferences";
 
 interface MapComponentProps {
     data: any;
 }
 
 export default function MapComponent({ data }: MapComponentProps) {
+    const { t } = usePreferences();
     const [tooltipContent, setTooltipContent] = useState("");
     const [tooltipStyles, setTooltipStyles] = useState<{ x: number, y: number, show: boolean }>({ x: 0, y: 0, show: false });
 
@@ -18,13 +20,13 @@ export default function MapComponent({ data }: MapComponentProps) {
         return Math.max(...data.domesticVisitors.map((d: any) => d.visitors || 0), 1);
     }, [data]);
 
-    // Color scale according to dashboard theme. 
+    // Color scale according to dashboard theme.
     const colorScale = scaleLinear<string>()
         .domain([0, maxVisitors])
         .range(["#0f172a", "#06b6d4"]); // slate-900 to cyan-500
 
     const getRegionData = (geoData: any) => {
-        let name = geoData.properties.NAME_1 || geoData.properties.ST || geoData.properties.name || geoData.properties.Name || geoData.properties.SR_NAME || "Unknown";
+        let name = geoData.properties.NAME_1 || geoData.properties.ST || geoData.properties.name || geoData.properties.Name || geoData.properties.SR_NAME || t("Unknown");
 
         let searchName = name.replace(/ Region| State| Territory/gi, "").trim();
 
@@ -50,12 +52,14 @@ export default function MapComponent({ data }: MapComponentProps) {
             return dbNorm.includes(sNorm) || sNorm.includes(dbNorm);
         });
 
+        const peakMonths: string[] = seasonInfo?.peakMonths || [];
+
         return {
             name,
             visitors: visitors?.visitors || 0,
             hotels: hotelInfo?.hotels || 0,
             rooms: hotelInfo?.rooms || 0,
-            peak: seasonInfo?.peakMonths?.join(", ") || "Unknown",
+            peak: peakMonths.length ? peakMonths.map((m) => t(m)).join(", ") : t("Unknown"),
             dailyCost: seasonInfo?.dailyCost || null,
             safetyScore: seasonInfo?.safetyScore || null,
             safetyNotes: seasonInfo?.safetyNotes || null
@@ -95,9 +99,9 @@ export default function MapComponent({ data }: MapComponentProps) {
                                         if (regionStats.dailyCost) {
                                             extended = `
                                                 <div class="mt-2 pt-2 border-t border-slate-700/50 text-xs">
-                                                    <div class="font-bold text-emerald-400 mb-1 tracking-wider uppercase">Travel Guide</div>
-                                                    <span class="text-slate-400">Est. Daily Cost:</span> <span class="font-medium">$${regionStats.dailyCost}</span><br/>
-                                                    <span class="text-slate-400">Safety Score:</span> <span class="font-medium ${regionStats.safetyScore > 60 ? 'text-emerald-400' : 'text-rose-400'}">${regionStats.safetyScore}/100</span><br/>
+                                                    <div class="font-bold text-emerald-400 mb-1 tracking-wider uppercase">${t("Travel Guide")}</div>
+                                                    <span class="text-slate-400">${t("Est. Daily Cost:")}</span> <span class="font-medium">$${regionStats.dailyCost}</span><br/>
+                                                    <span class="text-slate-400">${t("Safety Score:")}</span> <span class="font-medium ${regionStats.safetyScore > 60 ? 'text-emerald-400' : 'text-rose-400'}">${regionStats.safetyScore}/100</span><br/>
                                                     <div class="mt-1 text-slate-300 italic max-w-[220px] whitespace-normal leading-tight">"${regionStats.safetyNotes}"</div>
                                                 </div>
                                             `;
@@ -106,9 +110,9 @@ export default function MapComponent({ data }: MapComponentProps) {
                                         setTooltipContent(`
                                             <div class="font-bold text-base mb-1 border-b border-slate-700 pb-1">${regionStats.name}</div>
                                             <div class="text-sm">
-                                                <span class="text-slate-400">Visitors:</span> <span class="font-medium">${new Intl.NumberFormat().format(regionStats.visitors)}</span><br/>
-                                                <span class="text-slate-400">Hotels:</span> <span class="font-medium">${regionStats.hotels} (${regionStats.rooms} rooms)</span><br/>
-                                                <span class="text-slate-400">Peak Season:</span> <span class="font-medium text-amber-200">${regionStats.peak}</span>
+                                                <span class="text-slate-400">${t("Visitors:")}</span> <span class="font-medium">${new Intl.NumberFormat().format(regionStats.visitors)}</span><br/>
+                                                <span class="text-slate-400">${t("Hotels:")}</span> <span class="font-medium">${regionStats.hotels} (${regionStats.rooms} ${t("rooms")})</span><br/>
+                                                <span class="text-slate-400">${t("Peak Season:")}</span> <span class="font-medium text-amber-200">${regionStats.peak}</span>
                                             </div>
                                             ${extended}
                                         `);
@@ -140,7 +144,7 @@ export default function MapComponent({ data }: MapComponentProps) {
 
             {/* Legend */}
             <div className="absolute bottom-6 left-6 p-4 bg-slate-900/80 backdrop-blur-md rounded-xl border border-slate-700/50 flex flex-col gap-2">
-                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Visitor Density</span>
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">{t("Visitor Density")}</span>
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-sm bg-slate-800 border border-slate-700/50" />
                     <span className="text-xs text-slate-400">0</span>
@@ -149,8 +153,8 @@ export default function MapComponent({ data }: MapComponentProps) {
                     <div className="w-24 h-4 rounded-sm flex" style={{ background: "linear-gradient(to right, #0f172a, #06b6d4)" }}></div>
                 </div>
                 <div className="flex justify-between text-xs text-slate-400">
-                    <span>Low</span>
-                    <span>High</span>
+                    <span>{t("Low")}</span>
+                    <span>{t("High")}</span>
                 </div>
             </div>
         </div>

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useGlobalFilters } from "@/lib/FilterContext";
+import { useLiveData } from "@/lib/useLiveData";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getHotelsData } from "@/actions/hotels";
 import { KPICard } from "@/components/KPICard";
+import { LiveIndicator } from "@/components/LiveIndicator";
+import { usePreferences } from "@/components/AppPreferences";
 import { Hotel, Bed, Key } from "lucide-react";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -13,30 +15,17 @@ import {
 
 export default function HotelsPage() {
     const { filters } = useGlobalFilters();
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<any>(null);
-
-    useEffect(() => {
-        async function fetchData() {
-            setLoading(true);
-            try {
-                const result = await getHotelsData(filters);
-                setData(result);
-            } catch (err) {
-                console.error("Failed to load hotels data", err);
-            }
-            setLoading(false);
-        }
-        fetchData();
-    }, [filters]);
+    const { t } = usePreferences();
+    const { data, loading, lastUpdated } = useLiveData(() => getHotelsData(filters), [filters]);
 
     const formatNumber = (num: number | string) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(Number(num) || 0);
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-500">
             <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Hotel & Accommodation</h1>
-                <p className="text-slate-400">Discover hotel capacity, room availability, and infrastructure across regions.</p>
+                <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">{t("Hotel & Accommodation")}</h1>
+                <p className="text-slate-400">{t("Discover hotel capacity, room availability, and infrastructure across regions.")}</p>
+                <div className="mt-2"><LiveIndicator lastUpdated={lastUpdated} /></div>
             </div>
 
             <GlobalFilters showYear />
@@ -49,20 +38,20 @@ export default function HotelsPage() {
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <KPICard
-                            title="Total Hotels"
-                            value={formatNumber(data?.totalHotels)}
+                            title={t("Total Hotels")}
+                            value={formatNumber(data?.totalHotels ?? 0)}
                             icon={Hotel}
                             colorClass="from-amber-400 to-orange-500"
                         />
                         <KPICard
-                            title="Total Rooms"
-                            value={formatNumber(data?.totalRooms)}
+                            title={t("Total Rooms")}
+                            value={formatNumber(data?.totalRooms ?? 0)}
                             icon={Bed}
                             colorClass="from-rose-400 to-pink-500"
                         />
                         <KPICard
-                            title="Avg Rooms Per Hotel"
-                            value={data?.avgRoomsPerHotel}
+                            title={t("Avg Rooms Per Hotel")}
+                            value={data?.avgRoomsPerHotel ?? "0"}
                             icon={Key}
                             colorClass="from-cyan-400 to-blue-600"
                         />
@@ -74,7 +63,7 @@ export default function HotelsPage() {
                         <div className="glass-panel p-6 flex flex-col h-[450px]">
                             <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
                                 <div className="w-2 h-6 bg-rose-500 rounded-sm" />
-                                Top Regions by Capacity
+                                {t("Top Regions by Capacity")}
                             </h3>
                             <div className="flex-1 w-full h-full min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -85,9 +74,9 @@ export default function HotelsPage() {
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
                                             cursor={{ fill: '#1e293b' }}
-                                            formatter={(val: any, name: any) => [new Intl.NumberFormat('en-US').format(val), name === 'rooms' ? 'Rooms' : 'Hotels']}
+                                            formatter={(val: any, name: any) => [new Intl.NumberFormat('en-US').format(val), name === 'rooms' ? t('Rooms') : t('Hotels')]}
                                         />
-                                        <Bar dataKey="rooms" fill="#f43f5e" radius={[0, 4, 4, 0]} />
+                                        <Bar dataKey="rooms" name={t("Rooms")} fill="#f43f5e" radius={[0, 4, 4, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
@@ -97,7 +86,7 @@ export default function HotelsPage() {
                         <div className="glass-panel p-6 flex flex-col h-[450px]">
                             <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
                                 <div className="w-2 h-6 bg-amber-500 rounded-sm" />
-                                Hotel Capacity Growth
+                                {t("Hotel Capacity Growth")}
                             </h3>
                             <div className="flex-1 w-full h-full min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -110,11 +99,11 @@ export default function HotelsPage() {
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
                                             itemStyle={{ color: '#22d3ee' }}
-                                            formatter={(val: any, name: any) => [new Intl.NumberFormat('en-US').format(val), name === 'rooms' ? 'Total Rooms' : 'Total Hotels']}
+                                            formatter={(val: any, name: any) => [new Intl.NumberFormat('en-US').format(val), name === 'rooms' ? t('Total Rooms Trend') : t('Total Hotels Trend')]}
                                         />
 
-                                        <Area yAxisId="left" type="monotone" dataKey="rooms" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.5} />
-                                        <Area yAxisId="right" type="monotone" dataKey="hotels" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.8} />
+                                        <Area yAxisId="left" type="monotone" dataKey="rooms" name={t("Total Rooms Trend")} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.5} />
+                                        <Area yAxisId="right" type="monotone" dataKey="hotels" name={t("Total Hotels Trend")} stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.8} />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>
