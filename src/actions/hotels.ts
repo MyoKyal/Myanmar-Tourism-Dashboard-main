@@ -1,75 +1,51 @@
 "use server";
 
-import { getDb } from "@/lib/db";
+import { getAnalyticsRows } from "@/lib/documentStore";
 import { GlobalFiltersState } from "@/lib/FilterContext";
 
+function yearQuery(filters: GlobalFiltersState) {
+    return filters.year !== "All"
+        ? { year: Number(filters.year) }
+        : { fromYear: filters.yearRange[0], toYear: filters.yearRange[1] };
+}
+
 export async function getHotelsData(filters: GlobalFiltersState) {
-    const db = getDb();
+    let rows = await getAnalyticsRows("hotels_rooms", yearQuery(filters));
 
-    // Base params for filtering logic
-    let filterCondition = "";
-    const params: any[] = [];
-    if (filters.year !== 'All') {
-        filterCondition = "WHERE year = ?";
-        params.push(parseInt(filters.year));
-    } else if (filters.yearRange) {
-        filterCondition = "WHERE year >= ? AND year <= ?";
-        params.push(filters.yearRange[0], filters.yearRange[1]);
+    // Hotel capacity is a point-in-time snapshot, not something to sum across years —
+    // when no single year is selected, use the latest year within the filtered range.
+    if (filters.year === "All" && rows.length) {
+        const latestYear = Math.max(...rows.map((row) => Number(row.year)));
+        rows = rows.filter((row) => Number(row.year) === latestYear);
     }
 
-    // Since the original dataset includes "Total" rows sometimes, my ingestion script stripped "Total" where place === 'Total'.
-    // 1. Total hotels and rooms (aggregated over years if multiple selected, but usually capacity is a snapshot so if 'All' years, we should probably average or pick the latest. But for simplicity, we just SUM over what's provided or if 'All', take the max year to be accurate? The user requirement says "Total hotels, Total rooms". It makes sense to display the latest year if multiple are selected for capacity.)
+    const regionMap: Record<string, { name: string; hotels: number; rooms: number }> = {};
+    rows.forEach((row) => {
+        const name = String(row.place);
+        regionMap[name] ??= { name, hotels: 0, rooms: 0 };
+        regionMap[name].hotels += Number(row.hotels || 0);
+        regionMap[name].rooms += Number(row.rooms || 0);
+    });
+    const regions = Object.values(regionMap).sort((a, b) => b.rooms - a.rooms).slice(0, 15);
 
-    let capacityParams = [...params];
-    let capacityFilter = filterCondition;
+    const totalHotels = rows.reduce((total, row) => total + Number(row.hotels || 0), 0);
+    const totalRooms = rows.reduce((total, row) => total + Number(row.rooms || 0), 0);
 
-    // If multiple years are selected, we shouldn't sum hotel capacity since it's a point-in-time metric. Let's take the latest year in the range. 
-    if (filters.year === 'All') {
-        const latestYear = db.prepare(`SELECT MAX(year) as maxYear FROM hotels_rooms ${filterCondition}`).get(...params) as any;
-        if (latestYear && latestYear.maxYear) {
-           capacityFilter = "WHERE year = ?";
-           capacityParams = [latestYear.maxYear];
-        } else {
-            capacityFilter = "WHERE 1=0"; // fallback
-        }
-    }
-
-    const totalRow = db.prepare(`
-        SELECT SUM(hotels) as totalHotels, SUM(rooms) as totalRooms 
-        FROM hotels_rooms 
-        ${capacityFilter}
-    `).get(...capacityParams) as any;
-
-    const totalHotels = totalRow?.totalHotels || 0;
-    const totalRooms = totalRow?.totalRooms || 0;
-    const avgRoomsPerHotel = totalHotels > 0 ? (totalRooms / totalHotels).toFixed(1) : 0;
-
-    // 2. Top regions by hotel capacity
-    const regions = db.prepare(`
-        SELECT place as name, SUM(hotels) as hotels, SUM(rooms) as rooms 
-        FROM hotels_rooms 
-        ${capacityFilter} 
-        GROUP BY place
-        ORDER BY rooms DESC
-        LIMIT 15
-    `).all(...capacityParams) as any[];
-
-    // 3. Hotel capacity trends (across all years)
-    const trendsCondition = filters.yearRange ? "WHERE year >= ? AND year <= ?" : "";
-    const trendsParams = filters.yearRange ? [filters.yearRange[0], filters.yearRange[1]] : [];
-    const yearlyTrends = db.prepare(`
-        SELECT year, SUM(hotels) as hotels, SUM(rooms) as rooms 
-        FROM hotels_rooms 
-        ${trendsCondition}
-        GROUP BY year 
-        ORDER BY year
-    `).all(...trendsParams) as any[];
+    // Trends always span the full selected year range, regardless of the single-year snapshot above.
+    const trendRows = await getAnalyticsRows("hotels_rooms", filters.yearRange ? { fromYear: filters.yearRange[0], toYear: filters.yearRange[1] } : {});
+    const trendMap: Record<number, { year: number; hotels: number; rooms: number }> = {};
+    trendRows.forEach((row) => {
+        const year = Number(row.year);
+        trendMap[year] ??= { year, hotels: 0, rooms: 0 };
+        trendMap[year].hotels += Number(row.hotels || 0);
+        trendMap[year].rooms += Number(row.rooms || 0);
+    });
 
     return {
         totalHotels,
         totalRooms,
-        avgRoomsPerHotel,
+        avgRoomsPerHotel: totalHotels ? (totalRooms / totalHotels).toFixed(1) : "0",
         regions,
-        yearlyTrends
+        yearlyTrends: Object.values(trendMap).sort((a, b) => a.year - b.year),
     };
 }

@@ -1,12 +1,12 @@
-import { MongoClient, type Db, type Document } from 'mongodb';
-import { getDb } from '@/lib/db';
+import { MongoClient, type Db } from 'mongodb';
 
 export type TourismDocument = {
   _id: string;
-  type: 'arrival' | 'accommodation' | 'expenditure' | 'country' | 'visa';
+  dataset: string;
+  type: 'arrival' | 'accommodation' | 'expenditure' | 'country' | 'visa' | 'domestic' | 'monthly';
   year: number;
   payload: Record<string, unknown>;
-  source: 'official-sqlite-import' | 'modeled-2025';
+  source: 'official-csv' | 'modeled-2025';
 };
 
 export type DestinationProfile = {
@@ -20,25 +20,33 @@ export type DestinationProfile = {
   visaRule: string;
 };
 
-const uri = process.env.MONGODB_URI;
-const databaseName = process.env.MONGODB_DB_NAME || 'myanmar_tourism_dashboard';
-const prefix = process.env.MONGODB_COLLECTION_PREFIX || 'myanmar_tourism_';
 let clientPromise: Promise<MongoClient> | null = null;
 let seedPromise: Promise<void> | null = null;
 
-function mongoEnabled() {
-  return Boolean(uri);
+function mongoUri() {
+  return process.env.MONGODB_URI?.trim();
+}
+
+function databaseName() {
+  return process.env.MONGODB_DB_NAME || 'myanmar_tourism_dashboard';
+}
+
+function collectionPrefix() {
+  return process.env.MONGODB_COLLECTION_PREFIX || 'myanmar_tourism_';
 }
 
 async function getMongoDb(): Promise<Db> {
-  if (!uri) throw new Error('MONGODB_URI is not configured');
+  const uri = mongoUri();
+  if (!uri || uri.includes('<username>') || uri.includes('<password>') || uri.includes('<cluster>')) {
+    throw new Error('MongoDB is not configured. Create .env.local from .env.example, replace the placeholder MONGODB_URI with your MongoDB Atlas connection string, restart npm run dev, and run node scripts/ingest.cjs.');
+  }
   if (!clientPromise) clientPromise = new MongoClient(uri, { appName: 'MyanmarTourismDashboard' }).connect();
-  return (await clientPromise).db(databaseName);
+  return (await clientPromise).db(databaseName());
 }
 
 function collectionName(name: string) {
   // Prefixing every collection prevents collisions with any other project in the same Atlas cluster.
-  return `${prefix}${name}`;
+  return `${collectionPrefix()}${name}`;
 }
 
 export const destinationProfiles: DestinationProfile[] = [
@@ -62,30 +70,17 @@ export const destinationProfiles: DestinationProfile[] = [
   { destination: 'Magway Region', country: 'Myanmar', dailyCost: 35, safetyScore: 50, safetyNotes: 'Central dry zone; carry water and confirm transport between sites.', peakMonths: ['November', 'December', 'January', 'February'], shoulderMonths: ['October', 'March'], visaRule: 'Standard tourist visa applies.' },
 ];
 
-
 async function seedMongo() {
-  if (!mongoEnabled()) return;
   const db = await getMongoDb();
   const docs = db.collection(collectionName('documents'));
   await Promise.all([
+    docs.createIndex({ dataset: 1, year: 1 }),
     docs.createIndex({ type: 1, year: 1 }),
     db.collection(collectionName('destination_cost')).createIndex({ destination: 1 }),
     db.collection(collectionName('destination_safety')).createIndex({ destination: 1 }),
     db.collection(collectionName('destination_seasonality')).createIndex({ destination: 1 }),
     db.collection(collectionName('destination_visa')).createIndex({ destination: 1, nationality: 1 }),
   ]);
-  if (await docs.estimatedDocumentCount() === 0) {
-    const sqlite = getDb();
-    const documents: TourismDocument[] = [];
-    const add = (rows: any[], type: TourismDocument['type'], key: (row: any) => string) => rows.forEach((row) => documents.push({ _id: `${type}:${key(row)}:${row.year}`, type, year: Number(row.year), payload: row, source: Number(row.year) === 2025 ? 'modeled-2025' : 'official-sqlite-import' }));
-    add(sqlite.prepare('SELECT gateway, year, visitors FROM fast_facts').all() as any[], 'arrival', (row) => row.gateway);
-    add(sqlite.prepare('SELECT gateway, year, visitors FROM border_entry_points').all() as any[], 'arrival', (row) => `border-${row.gateway}`);
-    add(sqlite.prepare('SELECT place, year, hotels, rooms FROM hotels_rooms').all() as any[], 'accommodation', (row) => row.place);
-    add(sqlite.prepare('SELECT category, year, value FROM expenditure').all() as any[], 'expenditure', (row) => row.category);
-    add(sqlite.prepare('SELECT country, year, visitors FROM border_entry_visa_country').all() as any[], 'country', (row) => row.country);
-    add(sqlite.prepare('SELECT visa_type, year, visitors FROM visa_types').all() as any[], 'visa', (row) => row.visa_type);
-    if (documents.length) await docs.insertMany(documents as unknown as Document[]);
-  }
   const cost = db.collection(collectionName('destination_cost'));
   if (await cost.estimatedDocumentCount() === 0) {
     await db.collection(collectionName('destination_cost')).insertMany(destinationProfiles.map((p) => ({ destination: p.destination, country: p.country, dailyCost: p.dailyCost, currency: 'USD', source: 'planning-baseline' })));
@@ -100,36 +95,54 @@ async function ready() {
   await seedPromise;
 }
 
+// Raw document access, keyed by the document's analytical `type`. Kept for callers
+// (e.g. the Decision Center) that need the full document envelope (_id, dataset, source).
 export async function getTourismCollection(type?: TourismDocument['type'], year?: number): Promise<TourismDocument[]> {
-  if (mongoEnabled()) {
-    await ready();
-    const db = await getMongoDb();
-    return db.collection(collectionName('documents')).find({ ...(type ? { type } : {}), ...(year ? { year } : {}) }, { projection: { _id: 1, type: 1, year: 1, payload: 1, source: 1 } }).toArray() as unknown as TourismDocument[];
-  }
-  // Development fallback: use the relational import directly, without creating a local JSON document database.
-  const sqlite = getDb();
-  const rows = type === 'accommodation' ? sqlite.prepare('SELECT place, year, hotels, rooms FROM hotels_rooms').all() : sqlite.prepare('SELECT gateway, year, visitors FROM fast_facts').all();
-  return (rows as any[]).filter((row) => !year || row.year === year).map((row) => ({ _id: `${type || 'arrival'}:${row.gateway || row.place}:${row.year}`, type: type || 'arrival', year: row.year, payload: row, source: row.year === 2025 ? 'modeled-2025' : 'official-sqlite-import' })) as TourismDocument[];
+  await ready();
+  const db = await getMongoDb();
+  return db.collection(collectionName('documents')).find(
+    { ...(type ? { type } : {}), ...(year ? { year } : {}) },
+    { projection: { _id: 1, dataset: 1, type: 1, year: 1, payload: 1, source: 1 } }
+  ).toArray() as unknown as TourismDocument[];
+}
+
+// Flattened access, keyed by CSV `dataset` (e.g. 'fast_facts', 'hotels_rooms'). This is what
+// every analytics action uses — it returns each document's payload merged with its year/source.
+export async function getAnalyticsRows(dataset: string, filters?: { year?: number; fromYear?: number; toYear?: number }): Promise<Record<string, unknown>[]> {
+  await ready();
+  const db = await getMongoDb();
+  const yearQuery = filters?.year
+    ? { year: filters.year }
+    : filters?.fromYear || filters?.toYear
+      ? { year: { ...(filters.fromYear ? { $gte: filters.fromYear } : {}), ...(filters.toYear ? { $lte: filters.toYear } : {}) } }
+      : {};
+  const docs = await db.collection(collectionName('documents')).find({ dataset, ...yearQuery }, { projection: { payload: 1, year: 1, source: 1 } }).toArray();
+  return docs.map((doc) => ({ ...(doc.payload as Record<string, unknown>), year: doc.year, source: doc.source }));
 }
 
 export async function getDestinationProfile(destination: string, nationality: string): Promise<DestinationProfile | null> {
-  const match = (value: string) => value.toLowerCase() === destination.toLowerCase();
-  if (mongoEnabled()) {
-    await ready();
-    const db = await getMongoDb();
-    const [cost, safety, seasonality, visa] = await Promise.all([
-      db.collection(collectionName('destination_cost')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' } }),
-      db.collection(collectionName('destination_safety')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' } }),
-      db.collection(collectionName('destination_seasonality')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' } }),
-      db.collection(collectionName('destination_visa')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' }, nationality: { $in: [nationality, '*'] } }),
-    ]);
-    if (!cost) return null;
-    return { destination: String(cost.destination), country: String(cost.country), dailyCost: Number(cost.dailyCost), safetyScore: Number(safety?.safetyScore || 50), safetyNotes: String(safety?.notes || ''), peakMonths: (seasonality?.peakMonths || []) as string[], shoulderMonths: (seasonality?.shoulderMonths || []) as string[], visaRule: String(visa?.rule || 'Verify current visa rules with an official source.') };
-  }
-  return destinationProfiles.find((p) => match(p.destination)) || null;
+  await ready();
+  const db = await getMongoDb();
+  const [cost, safety, seasonality, visa] = await Promise.all([
+    db.collection(collectionName('destination_cost')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' } }),
+    db.collection(collectionName('destination_safety')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' } }),
+    db.collection(collectionName('destination_seasonality')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' } }),
+    db.collection(collectionName('destination_visa')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' }, nationality: { $in: [nationality, '*'] } }),
+  ]);
+  if (!cost) return null;
+  return {
+    destination: String(cost.destination),
+    country: String(cost.country),
+    dailyCost: Number(cost.dailyCost),
+    safetyScore: Number(safety?.safetyScore || 50),
+    safetyNotes: String(safety?.notes || ''),
+    peakMonths: (seasonality?.peakMonths || []) as string[],
+    shoulderMonths: (seasonality?.shoulderMonths || []) as string[],
+    visaRule: String(visa?.rule || 'Verify current visa rules with an official source.'),
+  };
 }
 
 export async function refreshTourismDocuments() {
-  if (mongoEnabled()) { seedPromise = null; await ready(); return; }
-  return 0;
+  seedPromise = null;
+  await ready();
 }

@@ -30,8 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files — .env.example is a safe template and stays tracked; anything with real
+# credentials (.env, .env.local, .env.*.local) must never be committed.
+.env
+.env*.local
 
 # vercel
 .vercel

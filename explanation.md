@@ -29,14 +29,12 @@ src/
   actions/                Server-side analytics and decision functions
   components/             Shared sidebar, filters, KPI cards, preferences
   lib/
-    db.ts                 SQLite compatibility/import database
-    documentStore.ts      MongoDB Atlas document collection adapter
+    documentStore.ts      MongoDB Atlas document repository
     FilterContext.tsx     Shared filter state
 scripts/
-  ingest.cjs              CSV-to-SQLite ingestion utility
+  ingest.cjs              CSV-to-MongoDB ingestion script
 dataset/                  Source CSV files
-tourism.db                Existing relational import database
-MongoDB Atlas             Primary document database for this project
+MongoDB Atlas             Required system of record for this project
 ```
 
 ## 3. Technology stack
@@ -47,8 +45,7 @@ MongoDB Atlas             Primary document database for this project
 - **Tailwind CSS 4** for styling.
 - **Recharts** for charts.
 - **Lucide React** for interface icons.
-- **SQLite / better-sqlite3** for the original import and compatibility layer.
-- **MongoDB Atlas** for the NoSQL decision and document workflows.
+- **MongoDB Atlas** as the system of record and document database.
 - **CSV parser** for ingesting the supplied datasets.
 
 ## 4. NoSQL: the main focus
@@ -59,17 +56,18 @@ Tourism data arrives in different shapes: arrivals, passports, visas, hotels, ro
 
 ### How this project uses it
 
-`src/lib/documentStore.ts` is the MongoDB Atlas boundary. It exposes a collection-style API:
+`src/lib/documentStore.ts` is the MongoDB Atlas repository boundary. It exposes two read APIs — `getAnalyticsRows(dataset, filters)`, which every analytics action uses, and `getTourismCollection(type, year)`, which returns the full document envelope for callers like the Decision Center:
 
 ```ts
-getTourismCollection('arrival', 2025)
+getAnalyticsRows('fast_facts', { fromYear: 2015, toYear: 2025 })
 ```
 
 Each document has:
 
 ```ts
 {
-  _id: "arrival:International Airports:2025",
+  _id: "fast_facts:International Airports:2025",
+  dataset: "fast_facts",
   type: "arrival",
   year: 2025,
   payload: { gateway: "International Airports", visitors: 123456 },
@@ -77,7 +75,7 @@ Each document has:
 }
 ```
 
-The store imports the existing analytical records into MongoDB Atlas on first use and reads them through indexed collections. No local JSON document database is created. If `MONGODB_URI` is not configured during local development, the adapter reads the existing SQLite import directly as a compatibility fallback.
+`scripts/ingest.cjs` imports the CSV records directly into MongoDB Atlas. The application reads every analytical record through indexed MongoDB collections. SQLite is no longer used anywhere at runtime — a `MONGODB_URI` is required.
 
 The document contract is intentionally isolated so the application can evolve without changing the Decision Center API.
 
@@ -101,16 +99,16 @@ That allows it to share an Atlas cluster with other projects without reading or 
 
 The destination collections are seeded with a planning baseline on first connection and should be reviewed by an administrator before public or commercial use.
 
-### Current migration status
+### Migration status
 
-The new Decision Center reads from MongoDB Atlas. Existing chart pages retain the SQLite compatibility layer so the historical dashboard continues to work while the migration is incremental and safe. The same collection contract can be used to migrate every analytics action later.
+The migration to MongoDB Atlas is complete. Every analytics action and the Decision Center read exclusively from MongoDB — the earlier SQLite compatibility layer (`src/lib/db.ts`) has been removed, and `scripts/ingest.cjs` now writes CSV data directly into Atlas instead of a local database file.
 
 ## 5. Data lifecycle
 
 1. Source CSV files live in `dataset/`.
-2. `scripts/ingest.cjs` imports those files into `tourism.db`.
-3. The database startup migration creates 2025 planning estimates from the latest 2024 values when official 2025 rows are unavailable.
-4. `documentStore.ts` imports the records into MongoDB Atlas collections.
+2. `scripts/ingest.cjs` imports those files directly into MongoDB Atlas.
+3. The ingestion script creates 2025 planning estimates from the latest 2024 values when official 2025 rows are unavailable.
+4. `documentStore.ts` queries the MongoDB collections.
 5. Server actions aggregate or filter those documents for the UI.
 6. Client pages render charts, KPIs, and decision results.
 
@@ -155,12 +153,13 @@ This is a transparent rules-based decision engine, not an opaque AI model. That 
 
 ```bash
 npm install
+node scripts/ingest.cjs
 npm run dev
 ```
 
 Open `http://127.0.0.1:3000`.
 
-For Atlas-backed mode, copy `.env.example` to `.env.local`, fill in `MONGODB_URI`, and use a project-specific Atlas user/database. Never commit `.env.local`.
+Copy `.env.example` to `.env.local`, fill in `MONGODB_URI` with a project-specific Atlas user/database, then run `node scripts/ingest.cjs` to load the CSV files before starting the dev server. A MongoDB connection is required — the app no longer falls back to a local database. Never commit `.env.local`.
 
 For a production compilation check:
 
@@ -173,7 +172,6 @@ npm run build
 For a larger production system, the next improvements would be:
 
 - Add monitoring, backups, and role-based access controls for the MongoDB Atlas database.
-- Move all chart actions from SQLite to the document repository.
 - Add user accounts, saved scenarios, and decision history.
 - Add destination-level cost, safety, seasonality, and visa collections.
 - Add an admin import screen for new CSV/API data.

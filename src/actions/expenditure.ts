@@ -1,69 +1,37 @@
 "use server";
 
-import { getDb } from "@/lib/db";
+import { getAnalyticsRows } from "@/lib/documentStore";
 import { GlobalFiltersState } from "@/lib/FilterContext";
 
+function yearQuery(filters: GlobalFiltersState) {
+    return filters.year !== "All"
+        ? { year: Number(filters.year) }
+        : { fromYear: filters.yearRange[0], toYear: filters.yearRange[1] };
+}
+
 export async function getExpenditureData(filters: GlobalFiltersState) {
-    const db = getDb();
+    const rows = await getAnalyticsRows("expenditure", yearQuery(filters));
 
-    // Filtering logic
-    const params: any[] = [];
-    let filterCondition = "";
-    if (filters.year !== 'All') {
-        filterCondition = "WHERE year = ?";
-        params.push(parseInt(filters.year));
-    } else if (filters.yearRange) {
-        filterCondition = "WHERE year >= ? AND year <= ?";
-        params.push(filters.yearRange[0], filters.yearRange[1]);
-    }
+    // Pivot category rows into one row per year (Recharts wants year -> {category: value}).
+    const pivot: Record<number, Record<string, number>> = {};
+    rows.forEach((row) => {
+        const year = Number(row.year);
+        pivot[year] ??= { year };
+        pivot[year][String(row.category)] = Number(row.value || 0);
+    });
+    const yearlyTrends = Object.values(pivot).sort((a, b) => a.year - b.year);
 
-    // Since expenditure data contains categories like "Total Expenditure (US$)", "Average Expenditure per day per person", "Average Length of Stay (Night)"
-    // We pivot by year.
-    const rawData = db.prepare(`
-        SELECT year, category, SUM(value) as val 
-        FROM expenditure 
-        ${filterCondition} 
-        GROUP BY year, category 
-        ORDER BY year
-    `).all(...params) as any[];
+    const totalExpenditure = yearlyTrends.reduce((total, row) => total + Number(row["Total Expenditure (US$)"] || 0), 0);
+    const totalArrivals = yearlyTrends.reduce((total, row) => total + Number(row["Tourist Arrivals"] || 0), 0);
 
-    // Pivot data for Recharts (year -> categories)
-    const trendsMap: Record<number, any> = {};
-    for (const row of rawData) {
-        if (!trendsMap[row.year]) trendsMap[row.year] = { year: row.year };
-        trendsMap[row.year][row.category] = row.val;
-    }
-
-    // We also need visitor arrivals to compare. The expenditure table already has "Tourist Arrivals" as a category if we ingested it perfectly.
-    // Wait, the "Visitor_Arrivals_Expenditure.csv" actually contains a "Tourist Arrivals" row!
-    
-    let totalExpenditure = 0;
-    let totalArrivals = 0;
-    
-    const yearlyTrends = Object.values(trendsMap).sort((a: any, b: any) => a.year - b.year);
-    
-    for (const row of yearlyTrends) {
-        if (row['Total Expenditure (US$)']) totalExpenditure += row['Total Expenditure (US$)'];
-        if (row['Tourist Arrivals']) totalArrivals += row['Tourist Arrivals'];
-    }
-
-    const estimatedPerVisitor = totalArrivals > 0 ? ((totalExpenditure * 1000000) / totalArrivals).toFixed(2) : 0;
-    
-    // Average values over selected period
-    let avgPerDay = 0;
-    let avgLengthOfStay = 0;
-    let totalYears = yearlyTrends.length;
-    
-    if (totalYears > 0) {
-        avgPerDay = yearlyTrends.reduce((acc, curr) => acc + (curr['Average Expenditure per day per person'] || 0), 0) / totalYears;
-        avgLengthOfStay = yearlyTrends.reduce((acc, curr) => acc + (curr['Average Length of Stay (Night)'] || 0), 0) / totalYears;
-    }
+    const average = (key: string) =>
+        yearlyTrends.length ? yearlyTrends.reduce((total, row) => total + Number(row[key] || 0), 0) / yearlyTrends.length : 0;
 
     return {
         totalExpenditure,
-        estimatedPerVisitor,
-        avgPerDay: avgPerDay.toFixed(2),
-        avgLengthOfStay: avgLengthOfStay.toFixed(1),
-        yearlyTrends
+        estimatedPerVisitor: totalArrivals > 0 ? ((totalExpenditure * 1_000_000) / totalArrivals).toFixed(2) : "0",
+        avgPerDay: average("Average Expenditure per day per person").toFixed(2),
+        avgLengthOfStay: average("Average Length of Stay (Night)").toFixed(1),
+        yearlyTrends,
     };
 }

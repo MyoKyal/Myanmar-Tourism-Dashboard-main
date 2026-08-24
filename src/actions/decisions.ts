@@ -19,7 +19,7 @@ export async function getDecisionInsights(filters: GlobalFiltersState) {
   const arrivalsFor = (targetYear: number) => arrivals.filter((doc) => doc.year === targetYear && ['International Airports', 'Cruise (By Sea)', 'Land Borders Total'].includes(String(doc.payload.gateway))).reduce((sum, doc) => sum + Number(doc.payload.visitors || 0), 0);
   const visitors = arrivalsFor(year);
   const prior = arrivalsFor(year - 1);
-  const topEntry = arrivals.filter((doc) => doc.year === year && String(doc._id).startsWith('arrival:border-')).sort((a, b) => Number(b.payload.visitors || 0) - Number(a.payload.visitors || 0))[0];
+  const topEntry = arrivals.filter((doc) => doc.year === year && doc.dataset === 'border_entry_points').sort((a, b) => Number(b.payload.visitors || 0) - Number(a.payload.visitors || 0))[0];
   const rooms = accommodation.filter((doc) => doc.year === year).reduce((acc, doc) => ({ rooms: acc.rooms + Number(doc.payload.rooms || 0), hotels: acc.hotels + Number(doc.payload.hotels || 0) }), { rooms: 0, hotels: 0 });
   const yoy = prior ? ((visitors - prior) / prior) * 100 : 0;
 

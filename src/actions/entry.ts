@@ -1,77 +1,56 @@
 "use server";
 
-import { getDb } from "@/lib/db";
+import { getAnalyticsRows } from "@/lib/documentStore";
 import { GlobalFiltersState } from "@/lib/FilterContext";
 
+function yearQuery(filters: GlobalFiltersState) {
+    return filters.year !== "All"
+        ? { year: Number(filters.year) }
+        : { fromYear: filters.yearRange[0], toYear: filters.yearRange[1] };
+}
+
+function groupByGateway(rows: Record<string, unknown>[]) {
+    const map: Record<string, { name: string; value: number }> = {};
+    rows.forEach((row) => {
+        const name = String(row.gateway);
+        map[name] ??= { name, value: 0 };
+        map[name].value += Number(row.visitors || 0);
+    });
+    return Object.values(map).sort((a, b) => b.value - a.value);
+}
+
 export async function getEntryPointData(filters: GlobalFiltersState) {
-    const db = getDb();
+    const q = yearQuery(filters);
+    const [airportRows, borderRows, seaportRows, fastFacts] = await Promise.all([
+        getAnalyticsRows("intl_airports", q),
+        getAnalyticsRows("border_entry_points", q),
+        getAnalyticsRows("intl_seaport", q),
+        getAnalyticsRows("fast_facts"),
+    ]);
 
-    // Base params for filtering logic
-    let filterCondition = "";
-    const params: any[] = [];
-    if (filters.year !== 'All') {
-        filterCondition = "WHERE year = ?";
-        params.push(parseInt(filters.year));
-    } else if (filters.yearRange) {
-        filterCondition = "WHERE year >= ? AND year <= ?";
-        params.push(filters.yearRange[0], filters.yearRange[1]);
-    }
-
-    // 1. Airports
-    const airports = db.prepare(`
-        SELECT gateway as name, SUM(visitors) as value 
-        FROM intl_airports 
-        ${filterCondition} 
-        GROUP BY gateway
-        ORDER BY value DESC
-    `).all(...params) as any[];
-
-    // 2. Borders
-    const borders = db.prepare(`
-        SELECT gateway as name, SUM(visitors) as value 
-        FROM border_entry_points 
-        ${filterCondition} 
-        GROUP BY gateway
-        ORDER BY value DESC
-    `).all(...params) as any[];
-
-    // 3. Seaports
-    const seaports = db.prepare(`
-        SELECT gateway as name, SUM(visitors) as value 
-        FROM intl_seaport 
-        ${filterCondition} 
-        GROUP BY gateway
-        ORDER BY value DESC
-    `).all(...params) as any[];
-
-    const totalAirports = airports.reduce((acc, curr) => acc + curr.value, 0);
-    const totalBorders = borders.reduce((acc, curr) => acc + curr.value, 0);
-    const totalSeaports = seaports.reduce((acc, curr) => acc + curr.value, 0);
-    const total = totalAirports + totalBorders + totalSeaports;
+    const airports = groupByGateway(airportRows);
+    const borders = groupByGateway(borderRows);
+    const seaports = groupByGateway(seaportRows);
 
     const composition = [
-        { name: "Airports", value: totalAirports },
-        { name: "Land Borders", value: totalBorders },
-        { name: "Seaports", value: totalSeaports }
+        { name: "Airports", value: airports.reduce((total, row) => total + row.value, 0) },
+        { name: "Land Borders", value: borders.reduce((total, row) => total + row.value, 0) },
+        { name: "Seaports", value: seaports.reduce((total, row) => total + row.value, 0) },
     ];
 
-    // Historical trends
-    const fastFacts = db.prepare(`
-        SELECT year, gateway, SUM(visitors) as total 
-        FROM fast_facts 
-        WHERE gateway IN ('International Airports', 'Cruise (By Sea)', 'Land Borders Total')
-        GROUP BY year, gateway 
-        ORDER BY year
-    `).all() as any[];
-
-    const trendsMap: Record<number, any> = {};
-    for (const row of fastFacts) {
-        if (!trendsMap[row.year]) trendsMap[row.year] = { year: row.year };
-        if (row.gateway === 'International Airports') trendsMap[row.year]['Airports'] = row.total;
-        if (row.gateway === 'Land Borders Total') trendsMap[row.year]['Land Borders'] = row.total;
-        if (row.gateway === 'Cruise (By Sea)') trendsMap[row.year]['Seaports'] = row.total;
-    }
-    const yearlyTrends = Object.values(trendsMap).sort((a: any, b: any) => a.year - b.year);
+    // Historical trends always span the full dataset, split by gateway category.
+    const trendMap: Record<number, { year: number; Airports?: number; ["Land Borders"]?: number; Seaports?: number }> = {};
+    fastFacts.forEach((row) => {
+        const year = Number(row.year);
+        const gateway = String(row.gateway);
+        if (!["International Airports", "Land Borders Total", "Cruise (By Sea)"].includes(gateway)) return;
+        trendMap[year] ??= { year };
+        const total = Number(row.visitors || 0);
+        if (gateway === "International Airports") trendMap[year]["Airports"] = total;
+        if (gateway === "Land Borders Total") trendMap[year]["Land Borders"] = total;
+        if (gateway === "Cruise (By Sea)") trendMap[year]["Seaports"] = total;
+    });
+    const yearlyTrends = Object.values(trendMap).sort((a, b) => a.year - b.year);
 
     return {
         airports,
@@ -79,6 +58,6 @@ export async function getEntryPointData(filters: GlobalFiltersState) {
         seaports,
         composition,
         yearlyTrends,
-        total
+        total: composition.reduce((total, row) => total + row.value, 0),
     };
 }
