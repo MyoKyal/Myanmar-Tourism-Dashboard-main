@@ -5,7 +5,8 @@ import { useGlobalFilters } from "@/lib/FilterContext";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getTrendsData } from "@/actions/trends";
 import { KPICard } from "@/components/KPICard";
-import { LineChart as LineChartIcon, Activity, CalendarDays, TrendingUp } from "lucide-react";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
+import { LineChart as LineChartIcon, Activity, CalendarDays, TrendingUp, Target } from "lucide-react";
 import {
     AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, ComposedChart, Cell
@@ -40,11 +41,19 @@ export default function TrendsPage() {
 
     const trendYoY = getLatestYoY();
 
+    const exportRows = [
+        ...(data?.yearly || []).map((r: any) => ({ year: r.year, visitors: r.total, yoy_growth_pct: r.yoy, type: "actual" })),
+        ...(data?.forecast ? [{ year: data.forecast.year, visitors: data.forecast.projected, yoy_growth_pct: data.forecast.growthRateUsed, type: "forecast" }] : [])
+    ];
+
     return (
         <div className="flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-500">
-            <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Time Trend Analysis</h1>
-                <p className="text-slate-400">Evaluate year-over-year growth, monthly seasonality, and pandemic impact.</p>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Time Trend Analysis</h1>
+                    <p className="text-slate-400">Evaluate year-over-year growth, monthly seasonality, and pandemic impact.</p>
+                </div>
+                <ExportCsvButton data={exportRows} filename="myanmar-tourism-trends.csv" label="Export Trends CSV" />
             </div>
 
             <GlobalFilters showYear />
@@ -55,7 +64,7 @@ export default function TrendsPage() {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                         <KPICard
                             title="Latest Year Growth"
                             value={`${trendYoY.value}%`}
@@ -74,6 +83,13 @@ export default function TrendsPage() {
                             value={formatNumber(data?.periods?.find((p: any) => p.period.includes('Pre'))?.total || 0)}
                             icon={Activity}
                             colorClass="from-purple-400 to-fuchsia-600"
+                        />
+                        <KPICard
+                            title={data?.forecast ? `${data.forecast.year} Forecast` : "Forecast"}
+                            value={data?.forecast ? formatNumber(data.forecast.projected) : 'N/A'}
+                            icon={Target}
+                            subtitle={data?.forecast ? `Trend over last ${data.forecast.windowYears}yr, ${data.forecast.growthRateUsed >= 0 ? '+' : ''}${data.forecast.growthRateUsed}% vs latest year` : undefined}
+                            colorClass="from-amber-400 to-orange-500"
                         />
                     </div>
 

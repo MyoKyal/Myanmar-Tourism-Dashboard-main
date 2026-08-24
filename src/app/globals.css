@@ -31,6 +31,7 @@ body {
 [data-theme="light"] .glass-card { background-color: #fff; border-color: #e2e8f0; box-shadow: 0 10px 24px rgba(15,23,42,.07); }
 [data-theme="light"] .glass-card:hover { background-color: #f8fafc; border-color: #cbd5e1; }
 [data-theme="light"] aside { background-color: rgba(255,255,255,.9); border-color: #e2e8f0; }
+[data-theme="light"] .mobile-header { background-color: rgba(255,255,255,.9); border-color: #e2e8f0; }
 [data-theme="light"] .border-white\/10 { border-color: #e2e8f0; }
 
 .glass-panel {

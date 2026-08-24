@@ -5,6 +5,7 @@ import { useGlobalFilters } from "@/lib/FilterContext";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getOverviewKPIs, getOverviewChartsData } from "@/actions/tourism";
 import { KPICard } from "@/components/KPICard";
+import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { Plane, Users, Hotel, DollarSign, Bed } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -37,9 +38,12 @@ export default function OverviewDashboard() {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-500">
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Main Overview</h1>
-        <p className="text-slate-400">High-level analysis of Myanmar's tourism performance.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Main Overview</h1>
+          <p className="text-slate-400">High-level analysis of Myanmar's tourism performance.</p>
+        </div>
+        <ExportCsvButton data={chartData?.yearlyIntl} filename="myanmar-tourism-yearly-arrivals.csv" label="Export Arrivals CSV" />
       </div>
 
       <GlobalFilters showYear />

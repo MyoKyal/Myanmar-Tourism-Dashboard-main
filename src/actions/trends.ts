@@ -54,9 +54,38 @@ export async function getTrendsData(filters: GlobalFiltersState) {
         { period: "Recovery (23-24)", total: recovery }
     ];
 
+    // 4. Next-year forecast via simple linear regression over the *recent* yearly totals.
+    // A regression over the full history gets dominated by the 2020-2022 pandemic crash and
+    // produces a nonsensical downward trend, so this uses a trailing window (last 5 years,
+    // or fewer if the filtered range is shorter) to reflect the current trajectory instead.
+    // Transparent, explainable projection (matches the rules-based approach used in the
+    // Decision Center) rather than an opaque model.
+    let forecast: { year: number; projected: number; growthRateUsed: number; windowYears: number } | null = null;
+    const trendWindow = yearlyRows.slice(-5);
+    if (trendWindow.length >= 2) {
+        const n = trendWindow.length;
+        const xMean = trendWindow.reduce((sum, r) => sum + r.year, 0) / n;
+        const yMean = trendWindow.reduce((sum, r) => sum + r.total, 0) / n;
+        let num = 0, den = 0;
+        for (const r of trendWindow) {
+            num += (r.year - xMean) * (r.total - yMean);
+            den += (r.year - xMean) ** 2;
+        }
+        const slope = den !== 0 ? num / den : 0;
+        const intercept = yMean - slope * xMean;
+        const nextYear = trendWindow[n - 1].year + 1;
+        const projected = Math.max(0, Math.round(slope * nextYear + intercept));
+        const lastActual = trendWindow[n - 1].total;
+        const growthRateUsed = lastActual > 0
+            ? parseFloat((((projected - lastActual) / lastActual) * 100).toFixed(1))
+            : 0;
+        forecast = { year: nextYear, projected, growthRateUsed, windowYears: n };
+    }
+
     return {
         yearly,
         seasonality,
-        periods
+        periods,
+        forecast
     };
 }
