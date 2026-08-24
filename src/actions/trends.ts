@@ -7,8 +7,9 @@ const GATEWAYS = ["International Airports", "Cruise (By Sea)", "Land Borders Tot
 const MONTH_ORDER = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export async function getTrendsData(filters: GlobalFiltersState) {
-    // Trends always show the whole timeline, restricted only by the year-range slider
-    // (not the single "year" dropdown, which the other analytics pages use).
+    // Trends charts are inherently multi-year (YoY growth, pandemic timeline, forecast),
+    // so this page uses a From/To year-range control instead of the single "year" dropdown
+    // the other analytics pages use -- collapsing to one year would break those charts.
     const range = filters.yearRange ? { fromYear: filters.yearRange[0], toYear: filters.yearRange[1] } : {};
 
     const [factsRows, monthlyRows] = await Promise.all([

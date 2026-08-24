@@ -7,6 +7,7 @@ import { usePreferences } from "@/components/AppPreferences";
 
 type GlobalFiltersProps = {
     showYear?: boolean;
+    showYearRange?: boolean;
     showMonth?: boolean;
     showCountry?: boolean;
     showRegion?: boolean;
@@ -16,11 +17,13 @@ type GlobalFiltersProps = {
 };
 
 const YEARS = ["All", ...Array.from({ length: 11 }, (_, i) => (2015 + i).toString())];
+const YEAR_RANGE_OPTIONS = Array.from({ length: 11 }, (_, i) => 2015 + i);
 const MONTHS = ["All", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const VISA_TYPES = ["All", "Tourist", "Business", "Others"];
 
 export default function GlobalFilters({
     showYear,
+    showYearRange,
     showMonth,
     showCountry,
     showRegion,
@@ -62,6 +65,37 @@ export default function GlobalFilters({
                         {YEARS.map(y => <option key={y} value={y}>{y === "All" ? t("All") : y}</option>)}
                     </select>
                 </div>
+            )}
+
+            {showYearRange && (
+                <>
+                    <div className="flex flex-col gap-1.5 min-w-[110px]">
+                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest pl-1">{t("From Year")}</label>
+                        <select
+                            className="bg-slate-950/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500 transition-colors appearance-none"
+                            value={filters.yearRange[0]}
+                            onChange={(e) => {
+                                const from = Number(e.target.value);
+                                setFilter('yearRange', [from, Math.max(from, filters.yearRange[1])]);
+                            }}
+                        >
+                            {YEAR_RANGE_OPTIONS.filter(y => y <= filters.yearRange[1]).map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5 min-w-[110px]">
+                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest pl-1">{t("To Year")}</label>
+                        <select
+                            className="bg-slate-950/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500 transition-colors appearance-none"
+                            value={filters.yearRange[1]}
+                            onChange={(e) => {
+                                const to = Number(e.target.value);
+                                setFilter('yearRange', [Math.min(filters.yearRange[0], to), to]);
+                            }}
+                        >
+                            {YEAR_RANGE_OPTIONS.filter(y => y >= filters.yearRange[0]).map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    </div>
+                </>
             )}
 
             {showMonth && (

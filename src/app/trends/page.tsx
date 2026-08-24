@@ -54,7 +54,7 @@ export default function TrendsPage() {
                 <ExportCsvButton data={exportRows} filename="myanmar-tourism-trends.csv" label={t("Export Trends CSV")} />
             </div>
 
-            <GlobalFilters showYear />
+            <GlobalFilters showYearRange />
 
             {loading ? (
                 <div className="flex items-center justify-center h-64">

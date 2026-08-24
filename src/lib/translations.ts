@@ -6,6 +6,8 @@ export const MY: Record<string, string> = {
   // Shared / filters
   "Reset Filters": "စစ်ထုတ်မှု ပြန်လည်သတ်မှတ်ရန်",
   "Year": "နှစ်",
+  "From Year": "မှစနှစ်",
+  "To Year": "အထိနှစ်",
   "Month": "လ",
   "Visa Type": "ဗီဇာအမျိုးအစား",
   "Country": "နိုင်ငံ",
