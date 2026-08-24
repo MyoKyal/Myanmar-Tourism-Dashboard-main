@@ -137,6 +137,7 @@ async function processMonthlyVisitors() {
       total_visitors: parseNum(row.Total),
       flights: parseNum(row['No.of Flights']),
       seat_capacity: parseNum(row['Seat Capacity']),
+      occupancy_rate: parseNum(row['Occupancy Rate(%)']),
     });
   }
 }

@@ -11,7 +11,7 @@ import { usePreferences } from "@/components/AppPreferences";
 import { LineChart as LineChartIcon, Activity, CalendarDays, TrendingUp, Target } from "lucide-react";
 import {
     AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, ComposedChart, Cell
+    BarChart, Bar, ComposedChart, Cell, Legend
 } from 'recharts';
 
 export default function TrendsPage() {
@@ -145,6 +145,59 @@ export default function TrendsPage() {
                                         />
                                         <Area type="monotone" dataKey="total" name={t("Visitors")} stroke="#a855f7" strokeWidth={3} fillOpacity={1} fill="url(#colorMonth)" />
                                     </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Visitor Demographics Stacked Bar */}
+                        <div className="glass-panel p-6 flex flex-col h-[400px]">
+                            <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
+                                <div className="w-2 h-6 bg-teal-500 rounded-sm" />
+                                {t("Visitor Demographics by Month")}
+                            </h3>
+                            <p className="text-xs text-slate-500 -mt-4 mb-4">{t("Myanmar citizens vs. foreign visitors passing through the gateway each month.")}</p>
+                            <div className="flex-1 w-full h-full min-h-0">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={data?.demographics || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                        <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => language === 'my' ? t(val) : val.substring(0, 3)} />
+                                        <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatNumber} domain={[0, 'dataMax']} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
+                                            formatter={(val: any) => new Intl.NumberFormat('en-US').format(val)}
+                                            labelFormatter={(label) => t(String(label))}
+                                        />
+                                        <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
+                                        <Bar dataKey="myanmar" name={t("Myanmar Citizens")} stackId="1" fill="#14b8a6" radius={[0, 0, 0, 0]} />
+                                        <Bar dataKey="foreigner" name={t("Foreign Visitors")} stackId="1" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Flight Capacity & Occupancy */}
+                        <div className="glass-panel p-6 flex flex-col h-[400px]">
+                            <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
+                                <div className="w-2 h-6 bg-orange-500 rounded-sm" />
+                                {t("Flight Capacity & Occupancy")}
+                            </h3>
+                            <p className="text-xs text-slate-500 -mt-4 mb-4">{t("Monthly flight volume, seat capacity, and how full those seats actually were.")}</p>
+                            <div className="flex-1 w-full h-full min-h-0">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <ComposedChart data={data?.capacity || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                        <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => language === 'my' ? t(val) : val.substring(0, 3)} />
+                                        <YAxis yAxisId="left" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatNumber} domain={[0, 'dataMax']} />
+                                        <YAxis yAxisId="right" orientation="right" stroke="#f59e0b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} domain={[0, 100]} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
+                                            formatter={(val: any, name: any) => [name === t("Occupancy Rate") ? `${val}%` : new Intl.NumberFormat('en-US').format(val), name]}
+                                            labelFormatter={(label) => t(String(label))}
+                                        />
+                                        <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
+                                        <Bar yAxisId="left" dataKey="seatCapacity" name={t("Seat Capacity")} fill="#334155" radius={[4, 4, 0, 0]} />
+                                        <Line yAxisId="right" type="monotone" dataKey="occupancyRate" name={t("Occupancy Rate")} stroke="#f59e0b" strokeWidth={3} dot={{ r: 3, fill: "#f59e0b", strokeWidth: 2, stroke: "#020617" }} />
+                                    </ComposedChart>
                                 </ResponsiveContainer>
                             </div>
                         </div>

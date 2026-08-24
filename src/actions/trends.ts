@@ -46,6 +46,32 @@ export async function getTrendsData(filters: GlobalFiltersState) {
     });
     const seasonality = Object.values(seasonalityMap).sort((a, b) => MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month));
 
+    // 2b. Visitor Demographics -- Myanmar citizens vs. foreign visitors, by month.
+    // Sourced from Monthly_Visitor_Arrivals.csv's gender-split columns, which were already
+    // being ingested into MongoDB but never surfaced anywhere in the UI.
+    const demographics = monthlyRows
+        .map((row) => ({
+            month: String(row.month),
+            myanmar: Number(row.myanmar_male || 0) + Number(row.myanmar_female || 0),
+            foreigner: Number(row.foreigner_male || 0) + Number(row.foreigner_female || 0),
+            myanmarMale: Number(row.myanmar_male || 0),
+            myanmarFemale: Number(row.myanmar_female || 0),
+            foreignerMale: Number(row.foreigner_male || 0),
+            foreignerFemale: Number(row.foreigner_female || 0),
+        }))
+        .sort((a, b) => MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month));
+
+    // 2c. Flight Capacity & Occupancy -- also from Monthly_Visitor_Arrivals.csv, previously
+    // ingested but unused. Useful alongside seasonality for gateway capacity planning.
+    const capacity = monthlyRows
+        .map((row) => ({
+            month: String(row.month),
+            flights: Number(row.flights || 0),
+            seatCapacity: Number(row.seat_capacity || 0),
+            occupancyRate: Number(row.occupancy_rate || 0),
+        }))
+        .sort((a, b) => MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month));
+
     // 3. Pandemic Timeline Comparison
     let preCovid = 0; // 2015-2019
     let covid = 0; // 2020-2022
@@ -94,5 +120,7 @@ export async function getTrendsData(filters: GlobalFiltersState) {
         seasonality,
         periods,
         forecast,
+        demographics,
+        capacity,
     };
 }
