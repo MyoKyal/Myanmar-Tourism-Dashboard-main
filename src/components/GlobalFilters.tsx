@@ -14,9 +14,13 @@ type GlobalFiltersProps = {
     showVisaType?: boolean;
     showEntryPoint?: boolean;
     showVisitorType?: boolean;
+    /** Earliest year this page's dataset actually has data for (default 2015).
+     *  Use when a source only covers part of the full range -- e.g. domestic
+     *  visitor data starts in 2019 -- so the dropdown never offers a year that
+     *  can only return empty results. */
+    minYear?: number;
 };
 
-const YEARS = ["All", ...Array.from({ length: 11 }, (_, i) => (2015 + i).toString())];
 const YEAR_RANGE_OPTIONS = Array.from({ length: 11 }, (_, i) => 2015 + i);
 const MONTHS = ["All", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const VISA_TYPES = ["All", "Tourist", "Business", "Others"];
@@ -30,9 +34,22 @@ export default function GlobalFilters({
     showVisaType,
     showEntryPoint,
     showVisitorType,
+    minYear = 2015,
 }: GlobalFiltersProps) {
     const { filters, setFilter, resetFilters } = useGlobalFilters();
     const { t } = usePreferences();
+
+    const yearOptions = ["All", ...YEAR_RANGE_OPTIONS.filter(y => y >= minYear).map(String)];
+
+    // If the page-specific year range excludes whatever year is currently selected
+    // (e.g. the user picked 2016 on another page, then navigated here), snap back to
+    // "All" instead of silently querying a year this page can never have data for.
+    useEffect(() => {
+        if (showYear && filters.year !== "All" && Number(filters.year) < minYear) {
+            setFilter('year', 'All');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showYear, minYear, filters.year]);
 
     // Local state for debouncing country input to prevent re-renders on every stroke
     const [localCountry, setLocalCountry] = useState(filters.country !== 'All' ? filters.country : '');
@@ -62,7 +79,7 @@ export default function GlobalFilters({
                         value={filters.year}
                         onChange={(e) => setFilter('year', e.target.value)}
                     >
-                        {YEARS.map(y => <option key={y} value={y}>{y === "All" ? t("All") : y}</option>)}
+                        {yearOptions.map(y => <option key={y} value={y}>{y === "All" ? t("All") : y}</option>)}
                     </select>
                 </div>
             )}

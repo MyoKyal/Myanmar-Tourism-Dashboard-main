@@ -54,6 +54,8 @@ export const MY: Record<string, string> = {
   "ASEAN": "အာဆီယံ",
   "Non-ASEAN": "အာဆီယံမဟုတ်",
   "Domestic": "ပြည်တွင်း",
+  "No domestic tourism data for this year": "ဤနှစ်အတွက် ပြည်တွင်း ခရီးသွားဒေတာ မရှိပါ",
+  "Domestic visitor arrivals are only tracked from 2019 onward. Choose a year from 2019-2025, or select \"All\" to see every year with data.": "ပြည်တွင်းဧည့်သည် လာရောက်မှုကို ၂၀၁၉ ခုနှစ်မှစတင်၍သာ မှတ်တမ်းတင်ထားသည်။ ၂၀၁၉-၂၀၂၅ ကြားမှ နှစ်တစ်နှစ်ကို ရွေးချယ်ပါ၊ သို့မဟုတ် ဒေတာရှိသော နှစ်အားလုံးကို ကြည့်ရှုရန် \"အားလုံး\" ကို ရွေးချယ်ပါ။",
   "International": "နိုင်ငံတကာ",
 
   // Trends

@@ -7,7 +7,7 @@ import { getDomesticData } from "@/actions/domestic";
 import { KPICard } from "@/components/KPICard";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
-import { Users, UserPlus, MapPin, TentTree } from "lucide-react";
+import { Users, UserPlus, MapPin, TentTree, CalendarX } from "lucide-react";
 import {
     Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend, ComposedChart, Line
@@ -31,11 +31,17 @@ export default function DomesticPage() {
                 <div className="mt-2"><LiveIndicator lastUpdated={lastUpdated} /></div>
             </div>
 
-            <GlobalFilters showYear />
+            <GlobalFilters showYear minYear={2019} />
 
             {loading ? (
                 <div className="flex items-center justify-center h-64">
                     <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+                </div>
+            ) : !data?.regions || data.regions.length === 0 ? (
+                <div className="glass-panel p-10 flex flex-col items-center text-center gap-3">
+                    <CalendarX className="w-10 h-10 text-slate-500" />
+                    <h3 className="text-lg font-bold text-slate-100">{t("No domestic tourism data for this year")}</h3>
+                    <p className="text-sm text-slate-400 max-w-md">{t("Domestic visitor arrivals are only tracked from 2019 onward. Choose a year from 2019-2025, or select \"All\" to see every year with data.")}</p>
                 </div>
             ) : (
                 <>
