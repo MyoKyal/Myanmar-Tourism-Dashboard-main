@@ -162,7 +162,12 @@ export const MY: Record<string, string> = {
   "High": "များ",
 
   // Decisions — form
-  "Budget / person ($)": "ဘတ်ဂျက် / တစ်ဦး ($)",
+  "Total Budget / Person ($)": "စုစုပေါင်း ဘတ်ဂျက် / တစ်ဦး ($)",
+  "For the whole trip, per traveller": "ခရီးစဉ်တစ်ခုလုံးအတွက်၊ တစ်ဦးလျှင်",
+  "1-60 days": "၁-၆၀ ရက်",
+  "1-20 travellers": "၁-၂၀ ဦး",
+  "Fill in your trip details above and click Generate to see a personalized recommendation here.": "အထက်ပါ ခရီးစဉ်အချက်အလက်များကို ဖြည့်စွက်ပြီး ကိုယ်ပိုင်အကြံပြုချက် ရယူရန် Generate ကို နှိပ်ပါ။",
+  "Generating...": "တွက်ချက်နေသည်...",
   "Passport nationality": "နိုင်ငံကူးလက်မှတ် နိုင်ငံသား",
   "e.g. Thailand": "ဥပမာ- ထိုင်း",
   "Days": "ရက်များ",
