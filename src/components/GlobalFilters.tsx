@@ -59,15 +59,20 @@ export default function GlobalFilters({
         if (filters.country === 'All') setLocalCountry('');
     }, [filters.country]);
 
-    // Debounce syncing local up to global
+    // Debounce syncing local up to global. Skipped when this instance isn't rendering the
+    // free-text country input (showCountry false) -- otherwise this effect still runs, and
+    // any *other* page-local control that writes to filters.country (e.g. the ASEAN country
+    // comparison dropdown on the International page) gets silently reset back to "All" 500ms
+    // after every change, since localCountry here was never updated to match.
     useEffect(() => {
+        if (!showCountry) return;
         const timer = setTimeout(() => {
             if ((localCountry || 'All') !== filters.country) {
                 setFilter('country', localCountry || 'All');
             }
         }, 500);
         return () => clearTimeout(timer);
-    }, [localCountry, filters.country, setFilter]);
+    }, [showCountry, localCountry, filters.country, setFilter]);
 
     return (
         <div className="glass-panel p-4 mb-6 flex flex-wrap gap-4 items-end z-20 relative">

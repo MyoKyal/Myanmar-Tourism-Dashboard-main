@@ -11,7 +11,6 @@ import type { LucideIcon } from 'lucide-react';
 import { getDecisionInsights, makeTravelDecision } from '@/actions/decisions';
 import { useGlobalFilters } from '@/lib/FilterContext';
 import { usePreferences } from '@/components/AppPreferences';
-import GlobalFilters from '@/components/GlobalFilters';
 
 const inputClass = "w-full rounded-lg border border-slate-700/50 bg-slate-950/50 pl-9 pr-3 py-2.5 text-slate-200 outline-none focus:border-cyan-500 transition-colors [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
@@ -94,8 +93,6 @@ export default function DecisionsPage() {
         <h1 className="text-3xl font-extrabold tracking-tight text-white">{text ? 'ဆုံးဖြတ်ချက် စင်တာ' : 'Decision Center'}</h1>
         <p className="text-slate-400 mt-2">{text ? 'ဒေတာမှ လုပ်ဆောင်နိုင်သော အကြံပြုချက်များကို ရယူပါ။' : 'Turn tourism data into practical planning actions.'}</p>
       </div>
-
-      <GlobalFilters showYear />
 
       <section className="glass-panel p-6">
         <div className="flex items-start gap-3 mb-6">
