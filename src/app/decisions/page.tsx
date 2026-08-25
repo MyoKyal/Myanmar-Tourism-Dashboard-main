@@ -116,7 +116,16 @@ export default function DecisionsPage() {
             </div>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 pointer-events-none">{currency === 'MMK' ? 'Ks' : '$'}</span>
-              <input type="number" min="0" value={input.budget || ''} onChange={e => setInput({ ...input, budget: Number(e.target.value) || 0 })} className={inputClass} />
+              <input
+                type="text"
+                inputMode="numeric"
+                value={input.budget ? input.budget.toLocaleString() : ''}
+                onChange={e => {
+                  const digits = e.target.value.replace(/[^0-9]/g, '');
+                  setInput({ ...input, budget: digits ? Number(digits) : 0 });
+                }}
+                className={inputClass}
+              />
             </div>
             <span className="text-[11px] text-slate-500">{t('For the whole trip, per traveller')}</span>
           </label>
