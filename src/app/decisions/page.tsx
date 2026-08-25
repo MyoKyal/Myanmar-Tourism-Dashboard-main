@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import {
   Lightbulb, ArrowUpRight, CheckCircle2, Sparkles, Loader2,
-  DollarSign, Flag, CalendarDays, Users, Briefcase, MapPin,
+  Flag, CalendarDays, Users, Briefcase, MapPin,
   Building2, MapPinned, Hotel,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -14,6 +14,9 @@ import { usePreferences } from '@/components/AppPreferences';
 import GlobalFilters from '@/components/GlobalFilters';
 
 const inputClass = "w-full rounded-lg border border-slate-700/50 bg-slate-950/50 pl-9 pr-3 py-2.5 text-slate-200 outline-none focus:border-cyan-500 transition-colors [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
+const MMK_PER_USD = 4500;
+type Currency = 'MMK' | 'USD';
 
 function Field({ icon: Icon, label, hint, children }: { icon: LucideIcon; label: string; hint?: string; children: ReactNode }) {
   return (
@@ -45,18 +48,39 @@ export default function DecisionsPage() {
   const { filters } = useGlobalFilters();
   const { language, theme, t } = usePreferences();
   const [insights, setInsights] = useState<any[]>([]);
-  const [input, setInput] = useState({ budget: 1000, nationality: 'Myanmar', days: 5, travelers: 1, purpose: 'leisure' as const, preferredRegion: 'any' as const });
+  const [input, setInput] = useState({ budget: 1000000, nationality: 'Myanmar', days: 5, travelers: 1, purpose: 'leisure' as const, preferredRegion: 'any' as const });
+  const [currency, setCurrency] = useState<Currency>('MMK');
   const [recommendation, setRecommendation] = useState<any>(null);
   const [generating, setGenerating] = useState(false);
   useEffect(() => { getDecisionInsights(filters).then(setInsights).catch(console.error); }, [filters]);
   const text = language === 'my';
   const isLight = theme === 'light';
 
+  // The budget input holds a value in whatever currency is currently selected. Switching
+  // currency converts the number in place, so the field always shows a sensible amount
+  // instead of silently reinterpreting the same digits in a different currency.
+  const changeCurrency = (next: Currency) => {
+    if (next === currency) return;
+    setInput(prev => ({
+      ...prev,
+      budget: next === 'USD' ? Math.round(prev.budget / MMK_PER_USD) : Math.round(prev.budget * MMK_PER_USD),
+    }));
+    setCurrency(next);
+  };
+
+  // destinationProfiles (and all downstream math in makeTravelDecision) are USD-denominated,
+  // so the entered budget is converted to USD before submitting, and every dollar amount in
+  // the result is converted back to the selected currency for display -- the underlying
+  // calculation always happens in USD regardless of what the user sees.
+  const formatMoney = (usdAmount: number) =>
+    currency === 'MMK' ? `${Math.round(usdAmount * MMK_PER_USD).toLocaleString()} Ks` : `$${Math.round(usdAmount).toLocaleString()}`;
+
   const decide = async (event: FormEvent) => {
     event.preventDefault();
     setGenerating(true);
     try {
-      setRecommendation(await makeTravelDecision(input));
+      const budgetUSD = currency === 'MMK' ? input.budget / MMK_PER_USD : input.budget;
+      setRecommendation(await makeTravelDecision({ ...input, budget: budgetUSD }));
     } finally {
       setGenerating(false);
     }
@@ -85,9 +109,20 @@ export default function DecisionsPage() {
         </div>
 
         <form onSubmit={decide} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 items-start">
-          <Field icon={DollarSign} label={t('Total Budget / Person ($)')} hint={t('For the whole trip, per traveller')}>
-            <input type="number" min="0" value={input.budget} onChange={e => setInput({ ...input, budget: Number(e.target.value) })} className={inputClass} />
-          </Field>
+          <label className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-slate-400">{t('Total Budget / Person')}</span>
+              <div className="inline-flex rounded-md border border-slate-700/50 overflow-hidden shrink-0" title={t('Exchange rate: 1 USD = 4,500 MMK')}>
+                <button type="button" onClick={() => changeCurrency('MMK')} className={`px-2 py-0.5 text-[10px] font-bold transition-colors ${currency === 'MMK' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>MMK</button>
+                <button type="button" onClick={() => changeCurrency('USD')} className={`px-2 py-0.5 text-[10px] font-bold transition-colors ${currency === 'USD' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>USD</button>
+              </div>
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 pointer-events-none">{currency === 'MMK' ? 'Ks' : '$'}</span>
+              <input type="number" min="0" value={input.budget} onChange={e => setInput({ ...input, budget: Number(e.target.value) })} className={inputClass} />
+            </div>
+            <span className="text-[11px] text-slate-500">{t('For the whole trip, per traveller')}</span>
+          </label>
           <Field icon={Flag} label={t('Passport nationality')}>
             <input value={input.nationality} onChange={e => setInput({ ...input, nationality: e.target.value })} placeholder={t('e.g. Thailand')} className={inputClass} />
           </Field>
@@ -163,9 +198,9 @@ export default function DecisionsPage() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 text-sm">
-              <div><span className="text-slate-400">{t('Planned spend')}</span><strong className="block text-slate-200">${recommendation.estimatedSpend.toLocaleString()}</strong></div>
-              <div><span className="text-slate-400">{t('Reserve')}</span><strong className="block text-slate-200">${recommendation.reserve.toLocaleString()}</strong></div>
-              <div><span className="text-slate-400">{t('Daily / person')}</span><strong className="block text-slate-200">${recommendation.dailyPerPerson} / ${recommendation.benchmarkDailyCost} {t('typical')}</strong></div>
+              <div><span className="text-slate-400">{t('Planned spend')}</span><strong className="block text-slate-200">{formatMoney(recommendation.estimatedSpend)}</strong></div>
+              <div><span className="text-slate-400">{t('Reserve')}</span><strong className="block text-slate-200">{formatMoney(recommendation.reserve)}</strong></div>
+              <div><span className="text-slate-400">{t('Daily / person')}</span><strong className="block text-slate-200">{formatMoney(recommendation.dailyPerPerson)} / {formatMoney(recommendation.benchmarkDailyCost)} {t('typical')}</strong></div>
               <div><span className="text-slate-400">{t('Safety score')}</span><strong className="block text-slate-200">{recommendation.safetyScore}/100</strong></div>
             </div>
 
@@ -175,6 +210,7 @@ export default function DecisionsPage() {
             </div>
             <div className="mt-4 text-sm text-slate-300"><strong className="text-slate-200">{t('Safety:')}</strong> {text ? recommendation.safetyNotesMm : recommendation.safetyNotes}</div>
             <ul className="mt-3 list-disc pl-5 text-sm text-slate-400 space-y-1">
+              <li className="leading-relaxed">{t('Typical daily cost for this destination:')} {formatMoney(recommendation.benchmarkDailyCost)}</li>
               {(text ? recommendation.reasonsMm : recommendation.reasons).map((reason: string) => <li key={reason} className="leading-relaxed">{reason}</li>)}
             </ul>
           </div>

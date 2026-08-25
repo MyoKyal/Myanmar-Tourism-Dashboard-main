@@ -162,8 +162,10 @@ export const MY: Record<string, string> = {
   "High": "များ",
 
   // Decisions — form
-  "Total Budget / Person ($)": "စုစုပေါင်း ဘတ်ဂျက် / တစ်ဦး ($)",
+  "Total Budget / Person": "စုစုပေါင်း ဘတ်ဂျက် / တစ်ဦး",
   "For the whole trip, per traveller": "ခရီးစဉ်တစ်ခုလုံးအတွက်၊ တစ်ဦးလျှင်",
+  "Exchange rate: 1 USD = 4,500 MMK": "လဲလှယ်နှုန်း: ၁ USD = ၄,၅၀၀ MMK",
+  "Typical daily cost for this destination:": "ဤခရီးစဉ်ဇုန်အတွက် ပုံမှန်နေ့စဉ်စရိတ်:",
   "1-60 days": "၁-၆၀ ရက်",
   "1-20 travellers": "၁-၂၀ ဦး",
   "Fill in your trip details above and click Generate to see a personalized recommendation here.": "အထက်ပါ ခရီးစဉ်အချက်အလက်များကို ဖြည့်စွက်ပြီး ကိုယ်ပိုင်အကြံပြုချက် ရယူရန် Generate ကို နှိပ်ပါ။",
