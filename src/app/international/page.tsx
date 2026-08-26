@@ -22,6 +22,7 @@ export default function InternationalPage() {
 
     const formatNumber = (num: number) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(num || 0);
     const aseanComparison = data?.aseanComparison?.map((row: any) => ({ ...row, name: t(row.name) }));
+    const revenueBenchmark = data?.revenueBenchmark?.map((row: any) => ({ ...row, label: `${t(row.country)} (${row.year})` }));
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-500">
@@ -96,6 +97,34 @@ export default function InternationalPage() {
                                     <Bar yAxisId="left" dataKey="country" name={t(data?.selectedCountry || '')} fill="#f59e0b" radius={[4, 4, 0, 0]} />
                                     <Line yAxisId="right" type="monotone" dataKey="myanmar" name={t("Myanmar (Total Arrivals)")} stroke="#06b6d4" strokeWidth={3} dot={{ r: 4 }} />
                                 </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ASEAN tourism revenue benchmark -- real World Bank receipts, not just visitor counts */}
+                    <div className="glass-panel p-6 flex flex-col mt-4">
+                        <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                            <div className="w-2 h-6 bg-rose-500 rounded-sm" />
+                            {t("ASEAN Tourism Revenue Benchmark")}
+                        </h3>
+                        <p className="text-sm text-slate-400 mt-1 mb-4 max-w-2xl">{t("International tourism receipts (World Bank), each country shown for its own most recently reported year since reporting timelines differ.")}</p>
+                        <div className="w-full h-[420px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={revenueBenchmark || []} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+                                    <XAxis type="number" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val: any) => `$${formatNumber(val)}M`} />
+                                    <YAxis dataKey="label" type="category" stroke="#94a3b8" fontSize={11} width={130} tickLine={false} axisLine={false} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
+                                        cursor={{ fill: '#1e293b' }}
+                                        formatter={(val: any) => [`$${new Intl.NumberFormat('en-US').format(val)}M`, t("Tourism Receipts")]}
+                                    />
+                                    <Bar dataKey="receiptsUsdM" radius={[0, 4, 4, 0]}>
+                                        {(revenueBenchmark || []).map((row: any) => (
+                                            <Cell key={row.country} fill={row.isMyanmar ? '#f43f5e' : '#06b6d4'} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>

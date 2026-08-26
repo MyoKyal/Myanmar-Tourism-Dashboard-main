@@ -42,8 +42,10 @@ export async function getExpenditureData(filters: GlobalFiltersState) {
     // gap), so receiptsUsdM is left undefined for years it doesn't cover rather than guessed.
     const gdpByYear: Record<number, number> = {};
     gdpRows.forEach((row) => { gdpByYear[Number(row.year)] = Number(row.gdpUsd || 0); });
+    // worldbank_tourism_receipts now covers Myanmar plus its ASEAN neighbors (for the
+    // revenue benchmark on the International Tourism page) -- scope to Myanmar only here.
     const receiptsByYear: Record<number, number> = {};
-    receiptsRows.forEach((row) => { receiptsByYear[Number(row.year)] = Number(row.receiptsUsd || 0); });
+    receiptsRows.filter((row) => row.country === 'Myanmar').forEach((row) => { receiptsByYear[Number(row.year)] = Number(row.receiptsUsd || 0); });
 
     const expenditureByYear: Record<number, number> = {};
     Object.values(pivot).forEach((row) => { expenditureByYear[Number(row.year)] = Number(row["Total Expenditure (US$)"] || 0); });
