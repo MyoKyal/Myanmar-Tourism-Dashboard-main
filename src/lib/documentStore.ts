@@ -3,10 +3,10 @@ import { MongoClient, type Db } from 'mongodb';
 export type TourismDocument = {
   _id: string;
   dataset: string;
-  type: 'arrival' | 'accommodation' | 'expenditure' | 'country' | 'visa' | 'domestic' | 'monthly';
+  type: 'arrival' | 'accommodation' | 'expenditure' | 'country' | 'visa' | 'domestic' | 'monthly' | 'economics';
   year: number;
   payload: Record<string, unknown>;
-  source: 'official-csv' | 'modeled-2025';
+  source: 'official-csv' | 'modeled-2025' | 'world-bank-api';
 };
 
 export type DestinationProfile = {

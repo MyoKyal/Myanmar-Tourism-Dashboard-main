@@ -142,6 +142,12 @@ export const MY: Record<string, string> = {
   "Average Spend per Day vs Average Length of Stay": "ပျမ်းမျှ နေ့စဉ်အသုံးစရိတ် နှင့် ပျမ်းမျှနေထိုင်ရက်",
   "Average Expenditure per day per person": "တစ်ဦးလျှင် နေ့စဉ်ပျမ်းမျှ အသုံးစရိတ်",
   "Average Length of Stay (Night)": "ပျမ်းမျှ နေထိုင်ရက် (ညအရေအတွက်)",
+  "Tourism's Share of GDP": "GDP တွင် ခရီးသွားလုပ်ငန်း၏ ပါဝင်မှု",
+  "World Bank GDP data": "ကမ္ဘာ့ဘဏ် GDP ဒေတာ",
+  "Tourism's Contribution to GDP": "GDP အတွက် ခရီးသွားလုပ်ငန်း၏ ပံ့ပိုးမှု",
+  "Total tourism expenditure as a share of Myanmar's GDP, benchmarked against World Bank Development Indicators.": "မြန်မာနိုင်ငံ၏ GDP တွင် ခရီးသွားလုပ်ငန်း အသုံးစရိတ် စုစုပေါင်း၏ ပါဝင်မှုအချိုး၊ ကမ္ဘာ့ဘဏ် ဖွံ့ဖြိုးရေးညွှန်းကိန်းများနှင့် နှိုင်းယှဉ်ထားသည်။",
+  "Share of GDP": "GDP ပါဝင်မှုအချိုး",
+  "World Bank receipts": "ကမ္ဘာ့ဘဏ် ဝင်ငွေ",
 
   // Domestic
   "Domestic Tourism Analysis": "ပြည်တွင်း ခရီးသွားလုပ်ငန်း ခွဲခြမ်းစိတ်ဖြာမှု",

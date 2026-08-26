@@ -7,10 +7,10 @@ import { getExpenditureData } from "@/actions/expenditure";
 import { KPICard } from "@/components/KPICard";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
-import { DollarSign, Coins, TrendingUp, HandCoins } from "lucide-react";
+import { DollarSign, Coins, TrendingUp, HandCoins, Landmark } from "lucide-react";
 import {
     Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    ComposedChart, Legend, Line, Bar
+    ComposedChart, Legend, Line, Bar, AreaChart
 } from 'recharts';
 
 export default function ExpenditurePage() {
@@ -37,7 +37,7 @@ export default function ExpenditurePage() {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <KPICard
                             title={t("Total Expenditure")}
                             value={`$${formatNumber(data?.totalExpenditure ?? 0)}M`}
@@ -61,6 +61,13 @@ export default function ExpenditurePage() {
                             value={nightsLabel(data?.avgLengthOfStay)}
                             icon={TrendingUp}
                             colorClass="from-purple-400 to-fuchsia-600"
+                        />
+                        <KPICard
+                            title={t("Tourism's Share of GDP")}
+                            value={data?.latestGdpImpact ? `${data.latestGdpImpact.gdpContributionPct}%` : t("N/A")}
+                            subtitle={data?.latestGdpImpact ? `${data.latestGdpImpact.year} · ${t("World Bank GDP data")}` : undefined}
+                            icon={Landmark}
+                            colorClass="from-rose-400 to-red-600"
                         />
                     </div>
 
@@ -120,6 +127,38 @@ export default function ExpenditurePage() {
                                         <Line yAxisId="left" type="step" dataKey="Average Expenditure per day per person" name={t("Average Expenditure per day per person")} stroke="#f59e0b" strokeWidth={3} dot={false} />
                                         <Area yAxisId="right" type="monotone" dataKey="Average Length of Stay (Night)" name={t("Average Length of Stay (Night)")} stroke="#a855f7" fill="#a855f7" fillOpacity={0.2} />
                                     </ComposedChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Tourism's share of GDP -- real World Bank GDP figures, independent of the CSV-derived data */}
+                        <div className="glass-panel p-6 flex flex-col h-[400px]">
+                            <h3 className="text-lg font-bold mb-1 text-slate-100 flex items-center gap-2">
+                                <div className="w-2 h-6 bg-rose-500 rounded-sm" />
+                                {t("Tourism's Contribution to GDP")}
+                            </h3>
+                            <p className="text-xs text-slate-500 mb-5">{t("Total tourism expenditure as a share of Myanmar's GDP, benchmarked against World Bank Development Indicators.")}</p>
+                            <div className="flex-1 w-full h-full min-h-0">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={data?.gdpImpact || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                        <XAxis dataKey="year" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="#f43f5e" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val: any) => `${val}%`} domain={[0, 'dataMax']} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
+                                            itemStyle={{ color: '#22d3ee' }}
+                                            formatter={(val: any, name: any) => [`${val}%`, name]}
+                                            labelFormatter={(year: any) => {
+                                                const point = (data?.gdpImpact || []).find((r: any) => r.year === year);
+                                                if (!point) return year;
+                                                const wb = point.worldBankReceiptsUsdM
+                                                    ? ` · ${t("World Bank receipts")}: $${new Intl.NumberFormat('en-US').format(point.worldBankReceiptsUsdM)}M`
+                                                    : '';
+                                                return `${year} — $${new Intl.NumberFormat('en-US').format(point.expenditureUsdM)}M / $${new Intl.NumberFormat('en-US').format(point.gdpUsdM)}M GDP${wb}`;
+                                            }}
+                                        />
+                                        <Area type="monotone" dataKey="gdpContributionPct" name={t("Share of GDP")} stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.25} strokeWidth={3} />
+                                    </AreaChart>
                                 </ResponsiveContainer>
                             </div>
                         </div>
