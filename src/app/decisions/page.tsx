@@ -5,7 +5,7 @@ import type { FormEvent, ReactNode } from 'react';
 import {
   Lightbulb, ArrowUpRight, CheckCircle2, Sparkles, Loader2,
   Flag, CalendarDays, Users, Briefcase, MapPin,
-  Building2, MapPinned, Hotel,
+  Building2, MapPinned, Hotel, Bot,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { getDecisionInsights, makeTravelDecision } from '@/actions/decisions';
@@ -219,6 +219,18 @@ export default function DecisionsPage() {
               <li className="leading-relaxed">{t('Typical daily cost for this destination:')} {formatMoney(recommendation.benchmarkDailyCost)}</li>
               {(text ? recommendation.reasonsMm : recommendation.reasons).map((reason: string) => <li key={reason} className="leading-relaxed">{reason}</li>)}
             </ul>
+
+            {recommendation.aiInsight && (
+              <div className={`mt-4 rounded-lg border p-3 flex gap-2.5 ${isLight ? 'border-purple-200 bg-purple-50' : 'border-purple-800/40 bg-purple-950/20'}`}>
+                <Bot className={`w-4 h-4 shrink-0 mt-0.5 ${isLight ? 'text-purple-600' : 'text-purple-400'}`} />
+                <div>
+                  {/* English-only: the local model tested for this feature produced incoherent
+                      Burmese, so this is labeled rather than silently mistranslated. */}
+                  <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isLight ? 'text-purple-700' : 'text-purple-400'}`}>{t('AI Insight')} · English</p>
+                  <p className="text-sm text-slate-300 leading-relaxed">{recommendation.aiInsight}</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </section>

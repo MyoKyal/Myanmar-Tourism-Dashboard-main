@@ -2,6 +2,7 @@
 
 import { getDestinationProfile, getTourismCollection } from '@/lib/documentStore';
 import { GlobalFiltersState } from '@/lib/FilterContext';
+import { generateAiInsight } from '@/lib/ollama';
 
 export type DecisionInput = {
   budget: number;
@@ -68,5 +69,23 @@ export async function makeTravelDecision(input: DecisionInput) {
   const reasons = [`${days} days × ${travelers} traveller(s)`, `${input.purpose} itinerary`, risk === 'low' ? 'Comfortable budget buffer' : 'Budget needs careful monitoring'];
   const reasonsMm = [`${days} ရက် × ခရီးသွား ${travelers} ဦး`, `${input.purpose === 'leisure' ? 'အပန်းဖြေ' : input.purpose === 'business' ? 'စီးပွားရေး' : 'မိသားစု'} ခရီးစဉ်`, risk === 'low' ? 'ဘတ်ဂျက် လုံလောက်စွာ ရရှိနိုင်သည်' : 'ဘတ်ဂျက်ကို ဂရုတစိုက် စောင့်ကြည့်ရန်လိုအပ်သည်'];
   const visaNoteMmFinal = profile?.visaRuleMm || visaNoteMm;
-  return { decision: `Choose ${destination}`, decisionMm: `${destination} ကို ရွေးချယ်ပါ`, destination, estimatedSpend: Math.round(totalBudget * 0.88), reserve: Math.round(totalBudget * 0.12), dailyPerPerson: Math.round(dailyPerPerson), benchmarkDailyCost: recommendedDailyCost, visaNote, visaNoteMm: visaNoteMmFinal, safetyScore: profile?.safetyScore || 50, safetyNotes: profile?.safetyNotes || 'Verify current local advisories.', safetyNotesMm: profile?.safetyNotesMm || 'လက်ရှိ ဒေသန္တရအကြံပြုချက်များကို စစ်ဆေးပါ။', peakMonths: profile?.peakMonths || [], shoulderMonths: profile?.shoulderMonths || [], risk, confidence: input.preferredRegion === 'any' ? 76 : 91, reasons, reasonsMm };
+
+  // AI Insight: a local Ollama model reasons over the same computed facts (destination,
+  // budget breakdown, risk, safety, season) to write a short, personalized explanation --
+  // additive on top of the deterministic reasons/reasonsMm above, never a replacement for
+  // them. Purely best-effort: if Ollama isn't running or times out, this is just null and
+  // the UI shows nothing extra -- every number above is already computed and correct either way.
+  const aiPrompt = `You are a knowledgeable, warm Myanmar travel advisor. Given this trip recommendation, write a short 2-3 sentence personalized explanation of why it fits, plus one practical tip. Respond in plain English text only, no preamble, no markdown.
+
+Destination: ${destination}
+Traveller nationality: ${input.nationality}
+Trip purpose: ${input.purpose}
+Duration: ${days} days, ${travelers} traveller(s)
+Budget: $${Math.round(dailyPerPerson)}/day per person (typical for this destination: $${recommendedDailyCost}/day)
+Budget risk level: ${risk}
+Safety score: ${profile?.safetyScore ?? 50}/100
+Peak season: ${(profile?.peakMonths || []).join(', ') || 'varies year-round'}`;
+  const aiInsight = await generateAiInsight(aiPrompt);
+
+  return { decision: `Choose ${destination}`, decisionMm: `${destination} ကို ရွေးချယ်ပါ`, destination, estimatedSpend: Math.round(totalBudget * 0.88), reserve: Math.round(totalBudget * 0.12), dailyPerPerson: Math.round(dailyPerPerson), benchmarkDailyCost: recommendedDailyCost, visaNote, visaNoteMm: visaNoteMmFinal, safetyScore: profile?.safetyScore || 50, safetyNotes: profile?.safetyNotes || 'Verify current local advisories.', safetyNotesMm: profile?.safetyNotesMm || 'လက်ရှိ ဒေသန္တရအကြံပြုချက်များကို စစ်ဆေးပါ။', peakMonths: profile?.peakMonths || [], shoulderMonths: profile?.shoulderMonths || [], risk, confidence: input.preferredRegion === 'any' ? 76 : 91, reasons, reasonsMm, aiInsight };
 }
