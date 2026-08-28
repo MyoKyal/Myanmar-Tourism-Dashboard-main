@@ -12,30 +12,56 @@ function yearQuery(filters: GlobalFiltersState) {
 // Hotel/room rows are keyed by city ("Bagan", "Taunggyi"), but the map and every other
 // destination dataset are keyed by state/region ("Mandalay", "Shan"). Without this mapping,
 // hotel capacity would only ever match a region whose name happens to equal a city name.
+//
+// Keys are normalized with normalizePlace() (letters only -- no spaces, no hyphens) so a
+// raw place name like "Kyauk Phyu" or "Hpa-An" reliably matches "kyaukphyu"/"hpaan" instead
+// of silently missing because of spacing/punctuation differences from how the key was typed.
+//
+// Every place NOT in this table falls into UNMAPPED_REGION_KEY rather than using its own raw
+// name as a fake "region" -- a raw town name can accidentally be a substring of (or contain)
+// a real region name after normalization (e.g. "Chin Shwe Haw", a Shan State town, contains
+// "chin" and would silently inflate Chin State's hotel count on the map via the fuzzy
+// includes() match in MapComponent.tsx). Bucketing the unmapped remainder under one inert key
+// guarantees it can never collide with a real region name.
+const UNMAPPED_REGION_KEY = '__unmapped__';
+
+function normalizePlace(value: string): string {
+    return value.toLowerCase().replace(/[^a-z]/g, "");
+}
+
 const CITY_TO_REGION: Record<string, string> = {
-    'aungban': 'shan', 'kalaw': 'shan', 'kyaington': 'shan', 'kyaukme': 'shan', 'lashio': 'shan',
-    'muse': 'shan', 'naung cho': 'shan', 'naung hkio': 'shan', 'nyaung shwe': 'shan',
-    'pindaya': 'shan', 'tachileik': 'shan', 'taunggyi': 'shan', 'thibaw': 'shan',
-    'nam sam': 'shan', 'ywar ngan': 'shan', 'phe khone': 'shan', 'kyaing tong': 'shan',
-    'ho pone': 'shan', 'maing sat': 'shan', 'mai sat': 'shan', 'theinni': 'shan',
-    'bagan': 'mandalay', 'mandalay': 'mandalay', 'meikhtila': 'mandalay', 'kyaukse': 'mandalay',
-    'myingyan': 'mandalay', 'pyin oo lwin': 'mandalay', 'pyaw bwe': 'mandalay', 'thazi': 'mandalay',
-    'ya mae thin': 'mandalay', 'pyinmana': 'nay pyi taw', 'nay pyi taw': 'nay pyi taw',
-    'naypyitaw': 'nay pyi taw', 'yangon': 'yangon',
-    'bago': 'bago', 'taungoo': 'bago', 'pyay': 'bago', 'dike oo': 'bago', 'nyaung lay pin': 'bago',
-    'chaungtha': 'ayeyarwady', 'ngwe saung': 'ayeyarwady', 'pathein': 'ayeyarwady', 'myaungmya': 'ayeyarwady',
-    'hin thata': 'ayeyarwady', 'ma u bin': 'ayeyarwady', 'laputtar': 'ayeyarwady',
-    'sittwe': 'rakhine', 'mrauk-u': 'rakhine', 'kyaukphyu': 'rakhine', 'ngapali': 'rakhine',
-    'thandwe': 'rakhine', 'munaung': 'rakhine', 'gwa': 'rakhine', 'taung gote': 'rakhine',
-    'mawlamyaing': 'mon', 'kyaikhto': 'mon', 'tha htone': 'mon', 'mudone': 'mon', 'thanphyu zayat': 'mon', 'ye': 'mon',
-    'hpa-an': 'kayin', 'hpa - an': 'kayin', 'myawaddy': 'kayin', 'karen': 'kayin',
-    'loikaw': 'kayah', 'd mol sol': 'kayah', 'hpasawng': 'kayah',
-    'dawei': 'tanintharyi', 'myeik': 'tanintharyi', 'kawthaung': 'tanintharyi',
-    'myitkyina': 'kachin', 'putao': 'kachin', 'bhamaw': 'kachin', 'phakant': 'kachin', 'moe nyin': 'kachin',
-    'kanpatlet': 'chin', 'mindat': 'chin', 'matupi': 'chin', 'matubi': 'chin',
-    'sagaing': 'sagaing', 'monywa': 'sagaing', 'shwe bo': 'sagaing', 'katha': 'sagaing', 'kalay': 'sagaing',
-    'magwe': 'magway', 'pakokku': 'magway', 'min bu': 'magway', 'yenangyaung': 'magway',
-    'chauk': 'magway', 'gangaw': 'magway', 'taung twin gyi': 'magway',
+    aungban: 'shan', kalaw: 'shan', kyaington: 'shan', kyaukme: 'shan', lashio: 'shan',
+    muse: 'shan', naungcho: 'shan', naunghkio: 'shan', naunghklo: 'shan', nyaungshwe: 'shan',
+    pindaya: 'shan', tachileik: 'shan', taunggyi: 'shan', thibaw: 'shan', laukkai: 'shan',
+    namsam: 'shan', namsamloilin: 'shan', ywarngan: 'shan', phekhone: 'shan', kyaingtong: 'shan',
+    hopone: 'shan', maingsat: 'shan', maisat: 'shan', theinni: 'shan', chinshwehaw: 'shan',
+    pinlaung: 'shan',
+    bagan: 'mandalay', mandalay: 'mandalay', meikhtila: 'mandalay', kyaukse: 'mandalay',
+    myingyan: 'mandalay', pyinoolwin: 'mandalay', pyawbwe: 'mandalay', thazi: 'mandalay',
+    yamaethin: 'mandalay', singu: 'mandalay', sintgaing: 'mandalay', mogok: 'mandalay',
+    pyinmana: 'naypyitaw', naypyitaw: 'naypyitaw',
+    yangon: 'yangon',
+    bago: 'bago', taungoo: 'bago', pyay: 'bago', dikeoo: 'bago', nyaunglaypin: 'bago',
+    thayawaddy: 'bago', latpadan: 'bago', paukkhaung: 'bago',
+    chaungtha: 'ayeyarwady', ngwesaung: 'ayeyarwady', pathein: 'ayeyarwady', myaungmya: 'ayeyarwady',
+    hinthata: 'ayeyarwady', maubin: 'ayeyarwady', laputtar: 'ayeyarwady', kyonepyaw: 'ayeyarwady',
+    sittwe: 'rakhine', mrauku: 'rakhine', kyaukphyu: 'rakhine', ngapali: 'rakhine',
+    thandwe: 'rakhine', munaung: 'rakhine', manaung: 'rakhine', gwa: 'rakhine', taunggote: 'rakhine',
+    shwethaungyan: 'rakhine',
+    mawlamyaing: 'mon', mawlamyaingkyun: 'mon', kyaikhto: 'mon', thahtone: 'mon', mudone: 'mon',
+    thanphyuzayat: 'mon', ye: 'mon', yay: 'mon', beelin: 'mon', paung: 'mon', phayarthonzu: 'mon',
+    hpaan: 'kayin', myawaddy: 'kayin', karen: 'kayin',
+    loikaw: 'kayah', dmolsol: 'kayah', hpasawng: 'kayah',
+    dawei: 'tanintharyi', myeik: 'tanintharyi', kawthaung: 'tanintharyi', bokpyin: 'tanintharyi',
+    lawei: 'tanintharyi', lwegel: 'tanintharyi',
+    myitkyina: 'kachin', putao: 'kachin', bhamaw: 'kachin', bhamauk: 'kachin', phakant: 'kachin',
+    moenyin: 'kachin', moekaung: 'kachin', winemaw: 'kachin',
+    kanpatlet: 'chin', kanpatlat: 'chin', mindat: 'chin', matupi: 'chin', matubi: 'chin',
+    sagaing: 'sagaing', monywa: 'sagaing', shwebo: 'sagaing', katha: 'sagaing', kalay: 'sagaing',
+    tamu: 'sagaing', yinmarpin: 'sagaing', htigyaing: 'sagaing', homemalin: 'sagaing', inndaw: 'sagaing',
+    magwe: 'magway', pakokku: 'magway', minbu: 'magway', minbue: 'magway', yenangyaung: 'magway',
+    yaynanchaung: 'magway', chauk: 'magway', gangaw: 'magway', taungtwingyi: 'magway',
+    taungtwingyl: 'magway', natmauk: 'magway', aunglan: 'magway', pwintphyu: 'magway',
 };
 
 export async function getDestinationsMapData(filters: GlobalFiltersState) {
@@ -62,13 +88,18 @@ export async function getDestinationsMapData(filters: GlobalFiltersState) {
 
     const hotelMap: Record<string, { hotels: number; rooms: number }> = {};
     hotelSourceRows.forEach((row) => {
-        const place = String(row.place).toLowerCase().replace(/[^a-z ]/g, "").trim();
-        const region = CITY_TO_REGION[place] || place;
+        const place = normalizePlace(String(row.place));
+        const region = CITY_TO_REGION[place] || UNMAPPED_REGION_KEY;
         hotelMap[region] ??= { hotels: 0, rooms: 0 };
         hotelMap[region].hotels += Number(row.hotels || 0);
         hotelMap[region].rooms += Number(row.rooms || 0);
     });
-    const hotelCapacity = Object.entries(hotelMap).map(([region, data]) => ({ region, hotels: data.hotels, rooms: data.rooms }));
+    // The unmapped bucket is aggregated (so its capacity isn't silently lost from the totals
+    // elsewhere on this page) but deliberately excluded from what the map matches against,
+    // since UNMAPPED_REGION_KEY is designed to never match a real region name.
+    const hotelCapacity = Object.entries(hotelMap)
+        .filter(([region]) => region !== UNMAPPED_REGION_KEY)
+        .map(([region, data]) => ({ region, hotels: data.hotels, rooms: data.rooms }));
 
     return {
         domesticVisitors: Object.values(domesticMap),
