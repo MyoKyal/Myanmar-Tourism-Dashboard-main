@@ -6,6 +6,7 @@ import GlobalFilters from "@/components/GlobalFilters";
 import { getOverviewKPIs, getOverviewChartsData } from "@/actions/tourism";
 import { getBusinessSnapshot } from "@/actions/businessSnapshot";
 import { KPICard } from "@/components/KPICard";
+import { PageSkeleton } from "@/components/Skeleton";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
@@ -43,9 +44,7 @@ export default function OverviewDashboard() {
       <GlobalFilters showYear />
 
       {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-        </div>
+        <PageSkeleton kpis={5} charts={2} />
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">

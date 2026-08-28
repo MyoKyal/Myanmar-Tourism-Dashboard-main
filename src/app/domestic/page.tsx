@@ -5,6 +5,7 @@ import { useLiveData } from "@/lib/useLiveData";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getDomesticData } from "@/actions/domestic";
 import { KPICard } from "@/components/KPICard";
+import { PageSkeleton } from "@/components/Skeleton";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
 import { Users, UserPlus, MapPin, TentTree, CalendarX } from "lucide-react";
@@ -34,9 +35,7 @@ export default function DomesticPage() {
             <GlobalFilters showYear minYear={2019} />
 
             {loading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-                </div>
+                <PageSkeleton kpis={4} charts={2} />
             ) : !data?.regions || data.regions.length === 0 ? (
                 <div className="glass-panel p-10 flex flex-col items-center text-center gap-3">
                     <CalendarX className="w-10 h-10 text-slate-500" />

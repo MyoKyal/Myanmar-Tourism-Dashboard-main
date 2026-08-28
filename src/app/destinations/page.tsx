@@ -8,6 +8,7 @@ import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
+import { ChartCardSkeleton } from "@/components/Skeleton";
 
 // Dynamically import map component because react-simple-maps requires browser APIs
 const MapComponent = dynamic(() => import("./MapComponent"), {
@@ -35,9 +36,7 @@ export default function DestinationsPage() {
             <GlobalFilters showYear />
 
             {loading && !data ? (
-                <div className="flex items-center justify-center h-64">
-                    <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
-                </div>
+                <ChartCardSkeleton height={600} />
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
                     <div className="glass-panel p-6 flex flex-col min-h-[600px] lg:col-span-12">

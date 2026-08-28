@@ -5,6 +5,7 @@ import { useLiveData } from "@/lib/useLiveData";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getTrendsData } from "@/actions/trends";
 import { KPICard } from "@/components/KPICard";
+import { PageSkeleton } from "@/components/Skeleton";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
@@ -57,9 +58,7 @@ export default function TrendsPage() {
             <GlobalFilters showYearRange />
 
             {loading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-                </div>
+                <PageSkeleton kpis={4} charts={5} />
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

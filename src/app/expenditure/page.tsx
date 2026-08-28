@@ -5,6 +5,7 @@ import { useLiveData } from "@/lib/useLiveData";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getExpenditureData } from "@/actions/expenditure";
 import { KPICard } from "@/components/KPICard";
+import { PageSkeleton } from "@/components/Skeleton";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
 import { DollarSign, Coins, TrendingUp, HandCoins, Landmark, Target } from "lucide-react";
@@ -32,9 +33,7 @@ export default function ExpenditurePage() {
             <GlobalFilters showYear />
 
             {loading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="w-8 h-8 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-                </div>
+                <PageSkeleton kpis={6} charts={3} />
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
