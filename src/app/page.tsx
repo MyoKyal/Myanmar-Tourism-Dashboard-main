@@ -4,11 +4,12 @@ import { useGlobalFilters } from "@/lib/FilterContext";
 import { useLiveData } from "@/lib/useLiveData";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getOverviewKPIs, getOverviewChartsData } from "@/actions/tourism";
+import { getBusinessSnapshot } from "@/actions/businessSnapshot";
 import { KPICard } from "@/components/KPICard";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
-import { Plane, Users, Hotel, DollarSign, Bed } from "lucide-react";
+import { Plane, Users, Hotel, DollarSign, Bed, Landmark, Target, Gauge, Award } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar
@@ -19,11 +20,12 @@ export default function OverviewDashboard() {
   const { t } = usePreferences();
 
   const { data, loading, lastUpdated } = useLiveData(async () => {
-    const [kpis, charts] = await Promise.all([getOverviewKPIs(filters), getOverviewChartsData(filters)]);
-    return { kpis, charts };
+    const [kpis, charts, business] = await Promise.all([getOverviewKPIs(filters), getOverviewChartsData(filters), getBusinessSnapshot(filters)]);
+    return { kpis, charts, business };
   }, [filters]);
   const kpiData = data?.kpis;
   const chartData = data?.charts;
+  const business = data?.business;
 
   const formatNumber = (num: number) => new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(num || 0);
 
@@ -77,6 +79,49 @@ export default function OverviewDashboard() {
               icon={DollarSign}
               colorClass="from-cyan-400 to-blue-500"
             />
+          </div>
+
+          {/* Business Snapshot -- one stat tile per business angle built across the
+              Expenditure, Hotels, and International pages, each with a trend sparkline
+              so the headline number never appears without its trajectory. */}
+          <div className="mt-2">
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">{t("Business Snapshot")}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KPICard
+                title={t("Tourism's Share of GDP")}
+                value={business?.gdp.valuePct != null ? `${business.gdp.valuePct}%` : t("N/A")}
+                subtitle={business?.gdp.year ? `${business.gdp.year} · ${t("World Bank GDP data")}` : undefined}
+                trend={business?.gdp.deltaPct != null ? { value: Math.abs(business.gdp.deltaPct), isPositive: business.gdp.deltaPct >= 0 } : undefined}
+                sparkline={business?.gdp.trend}
+                icon={Landmark}
+                colorClass="from-rose-400 to-red-600"
+              />
+              <KPICard
+                title={business?.revenueForecast.year ? `${business.revenueForecast.year} ${t("Revenue Forecast")}` : t("Revenue Forecast")}
+                value={business?.revenueForecast.projectedUsdM != null ? `$${formatNumber(business.revenueForecast.projectedUsdM)}M` : t("N/A")}
+                subtitle={t("5yr trailing trend")}
+                trend={business?.revenueForecast.growthRateUsed != null ? { value: Math.abs(business.revenueForecast.growthRateUsed), isPositive: business.revenueForecast.growthRateUsed >= 0 } : undefined}
+                sparkline={business?.revenueForecast.trend}
+                icon={Target}
+                colorClass="from-fuchsia-400 to-purple-600"
+              />
+              <KPICard
+                title={t("Rooms per 1,000 Visitors")}
+                value={business?.capacity.roomsPer1000 != null ? business.capacity.roomsPer1000.toString() : t("N/A")}
+                subtitle={business?.capacity.year ? `${business.capacity.year}` : undefined}
+                trend={business?.capacity.deltaPct != null ? { value: Math.abs(business.capacity.deltaPct), isPositive: business.capacity.deltaPct >= 0 } : undefined}
+                sparkline={business?.capacity.trend}
+                icon={Gauge}
+                colorClass="from-emerald-400 to-teal-600"
+              />
+              <KPICard
+                title={t("ASEAN Revenue Rank")}
+                value={business?.aseanRank.rank ? `#${business.aseanRank.rank} ${t("of")} ${business.aseanRank.outOf}` : t("N/A")}
+                subtitle={business?.aseanRank.receiptsUsdM ? `$${formatNumber(business.aseanRank.receiptsUsdM)}M · ${business.aseanRank.year}` : undefined}
+                icon={Award}
+                colorClass="from-amber-400 to-orange-500"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">

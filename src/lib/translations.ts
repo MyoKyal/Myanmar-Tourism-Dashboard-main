@@ -41,6 +41,10 @@ export const MY: Record<string, string> = {
   "Expenditure ($)": "အသုံးစရိတ် ($)",
   "International Arrivals by Year": "နှစ်အလိုက် နိုင်ငံတကာ လာရောက်မှု",
   "Monthly Aggregate Interntional Visitors": "လစဉ် နိုင်ငံတကာ ဧည့်သည် စုစုပေါင်း",
+  "Business Snapshot": "စီးပွားရေး အနှစ်ချုပ်",
+  "5yr trailing trend": "လွန်ခဲ့သော ၅ နှစ် လမ်းကြောင်း",
+  "ASEAN Revenue Rank": "အာဆီယံ ဝင်ငွေ အဆင့်",
+  "of": "အနက်",
 
   // International
   "International Tourism Analysis": "နိုင်ငံတကာ ခရီးသွားလုပ်ငန်း ခွဲခြမ်းစိတ်ဖြာမှု",
