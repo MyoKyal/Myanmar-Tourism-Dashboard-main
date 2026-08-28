@@ -142,6 +142,7 @@ export const MY: Record<string, string> = {
   "Analyze the economic impact, foreign spending, and financial trends of tourism.": "ခရီးသွားလုပ်ငန်း၏ စီးပွားရေးသက်ရောက်မှု၊ နိုင်ငံခြားအသုံးစရိတ်နှင့် ဘဏ္ဍာရေးလမ်းကြောင်းများကို ခွဲခြမ်းစိတ်ဖြာပါ။",
   "Total Expenditure": "စုစုပေါင်း အသုံးစရိတ်",
   "Rev Per Visitor (Est)": "ဧည့်သည်တစ်ဦးလျှင် ဝင်ငွေ (ခန့်မှန်း)",
+  "Revenue Forecast": "ဝင်ငွေ ခန့်မှန်းချက်",
   "Daily Spend Target": "နေ့စဉ် အသုံးစရိတ် ပန်းတိုင်",
   "Avg Stay": "ပျမ်းမျှ နေထိုင်ရက်",
   "Nights": "ညများ",

@@ -7,7 +7,7 @@ import { getExpenditureData } from "@/actions/expenditure";
 import { KPICard } from "@/components/KPICard";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
-import { DollarSign, Coins, TrendingUp, HandCoins, Landmark } from "lucide-react";
+import { DollarSign, Coins, TrendingUp, HandCoins, Landmark, Target } from "lucide-react";
 import {
     Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     ComposedChart, Legend, Line, Bar, AreaChart
@@ -37,7 +37,7 @@ export default function ExpenditurePage() {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                         <KPICard
                             title={t("Total Expenditure")}
                             value={`$${formatNumber(data?.totalExpenditure ?? 0)}M`}
@@ -68,6 +68,17 @@ export default function ExpenditurePage() {
                             subtitle={data?.latestGdpImpact ? `${data.latestGdpImpact.year} · ${t("World Bank GDP data")}` : undefined}
                             icon={Landmark}
                             colorClass="from-rose-400 to-red-600"
+                        />
+                        <KPICard
+                            title={data?.revenueForecast ? `${data.revenueForecast.year} ${t("Revenue Forecast")}` : t("Revenue Forecast")}
+                            value={data?.revenueForecast ? `$${formatNumber(data.revenueForecast.projectedUsdM)}M` : t("N/A")}
+                            subtitle={data?.revenueForecast
+                                ? (language === 'my'
+                                    ? `လွန်ခဲ့သော ${data.revenueForecast.windowYears} နှစ် လမ်းကြောင်း၊ ${data.revenueForecast.growthRateUsed >= 0 ? '+' : ''}${data.revenueForecast.growthRateUsed}%`
+                                    : `Trend over last ${data.revenueForecast.windowYears}yr, ${data.revenueForecast.growthRateUsed >= 0 ? '+' : ''}${data.revenueForecast.growthRateUsed}%`)
+                                : undefined}
+                            icon={Target}
+                            colorClass="from-fuchsia-400 to-purple-600"
                         />
                     </div>
 
