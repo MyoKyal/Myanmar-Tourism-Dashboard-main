@@ -55,9 +55,12 @@ export async function makeTravelDecision(input: DecisionInput) {
   const totalBudget = budget * travelers;
   const dailyPerPerson = budget / days;
   const destinationMap: Record<string, string> = { yangon: 'Yangon', mandalay: 'Mandalay', bagan: 'Bagan', inle: 'Inle Lake', shan: 'Shan State', mon: 'Mon State', rakhine: 'Rakhine State', chin: 'Chin State', kayin: 'Kayin State', kachin: 'Kachin State', sagaing: 'Sagaing Region', tanintharyi: 'Tanintharyi Region', ayeyarwady: 'Ayeyarwady Region', naypyidaw: 'Naypyidaw', beach: 'Ngapali Beach' };
-  const destination = input.preferredRegion === 'any' ? (input.purpose === 'business' ? 'Yangon' : dailyPerPerson >= 85 ? 'Ngapali Beach' : dailyPerPerson >= 45 ? 'Bagan + Inle Lake' : 'Yangon + Bago') : destinationMap[input.preferredRegion];
+  // Thresholds are scaled to destinationProfiles.dailyCost (documentStore.ts), which was
+  // rescaled to match Myanmar's real "Average Expenditure per day per person" -- roughly
+  // $88-236/day, averaging ~$123 -- rather than the old $32-86 synthetic placeholder range.
+  const destination = input.preferredRegion === 'any' ? (input.purpose === 'business' ? 'Yangon' : dailyPerPerson >= 233 ? 'Ngapali Beach' : dailyPerPerson >= 123 ? 'Bagan + Inle Lake' : 'Yangon + Bago') : destinationMap[input.preferredRegion];
   const profile = await getDestinationProfile(destination.split(' + ')[0], input.nationality);
-  const recommendedDailyCost = profile?.dailyCost || 45;
+  const recommendedDailyCost = profile?.dailyCost || 123;
   const isAsean = ['Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'Brunei', 'Cambodia', 'Laos'].some((country) => input.nationality.toLowerCase().includes(country.toLowerCase()));
   const visaNote = profile?.visaRule || (isAsean ? 'ASEAN passport: check the current visa exemption/arrival rules before booking.' : 'Non-ASEAN passport: budget time and fees for an eVisa or embassy process.');
   const visaNoteMm = profile?.visaRule || (isAsean ? 'အာဆီယံနိုင်ငံကူးလက်မှတ်: မှာယူမီ လက်ရှိဗီဇာကင်းလွတ်ခွင့်/ရောက်ရှိချက်စည်းမျဉ်းများကို စစ်ဆေးပါ။' : 'အာဆီယံမဟုတ်သော နိုင်ငံကူးလက်မှတ်: eVisa သို့မဟုတ် သံရုံးလုပ်ငန်းစဉ်အတွက် အချိန်နှင့်စရိတ်ကို ကြိုတင်စီစဉ်ထားပါ။');
