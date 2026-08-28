@@ -130,6 +130,11 @@ export const MY: Record<string, string> = {
   "Hotels": "ဟိုတယ်များ",
   "Hotel Capacity Growth": "ဟိုတယ်စွမ်းဆောင်ရည် တိုးတက်မှု",
   "Total Rooms Trend": "စုစုပေါင်း အခန်း လမ်းကြောင်း",
+  "Rooms per 1,000 Visitors": "ဧည့်သည် ၁,၀၀၀ လျှင် အခန်းအရေအတွက်",
+  "vs": "နှင့် ယှဉ်လျှင်",
+  "Capacity vs. Demand": "စွမ်းဆောင်ရည် နှင့် လိုအပ်ချက်",
+  "Room supply per 1,000 visitors (domestic + international), nationally. A rising line means capacity is outpacing demand; a falling line signals a supply crunch.": "တစ်နိုင်ငံလုံးအတိုင်းအတာဖြင့် ဧည့်သည် ၁,၀၀၀ (ပြည်တွင်း + နိုင်ငံတကာ) လျှင် အခန်းရရှိနိုင်မှု။ မျဉ်းတက်နေလျှင် စွမ်းဆောင်ရည်သည် လိုအပ်ချက်ထက် ပိုနေခြင်း၊ မျဉ်းကျနေလျှင် အခန်းလိုအပ်ချက် တင်းကျပ်လာခြင်းကို ဖော်ပြသည်။",
+  "Total Visitors": "စုစုပေါင်း ဧည့်သည်",
   "Total Hotels Trend": "စုစုပေါင်း ဟိုတယ် လမ်းကြောင်း",
 
   // Expenditure

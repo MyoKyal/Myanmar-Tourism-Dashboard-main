@@ -3,6 +3,8 @@
 import { getAnalyticsRows } from "@/lib/documentStore";
 import { GlobalFiltersState } from "@/lib/FilterContext";
 
+const GATEWAYS = ["International Airports", "Cruise (By Sea)", "Land Borders Total"];
+
 function yearQuery(filters: GlobalFiltersState) {
     return filters.year !== "All"
         ? { year: Number(filters.year) }
@@ -41,11 +43,39 @@ export async function getHotelsData(filters: GlobalFiltersState) {
         trendMap[year].rooms += Number(row.rooms || 0);
     });
 
+    // Capacity vs. demand: room supply only means something next to how many visitors
+    // actually showed up. Always compares the full history (not the page's year filter)
+    // since the point is to see whether supply has kept pace with demand over time.
+    const [intlRows, domesticRows] = await Promise.all([
+        getAnalyticsRows("fast_facts"),
+        getAnalyticsRows("domestic_visitors"),
+    ]);
+    const visitorsByYear: Record<number, number> = {};
+    intlRows.filter((row) => GATEWAYS.includes(String(row.gateway))).forEach((row) => {
+        const year = Number(row.year);
+        visitorsByYear[year] = (visitorsByYear[year] || 0) + Number(row.visitors || 0);
+    });
+    domesticRows.forEach((row) => {
+        const year = Number(row.year);
+        visitorsByYear[year] = (visitorsByYear[year] || 0) + Number(row.visitors_millions || 0) * 1_000_000;
+    });
+
+    const capacityVsDemand = Object.values(trendMap)
+        .filter((row) => visitorsByYear[row.year] > 0)
+        .sort((a, b) => a.year - b.year)
+        .map((row) => ({
+            year: row.year,
+            rooms: row.rooms,
+            visitors: visitorsByYear[row.year],
+            roomsPer1000Visitors: Number(((row.rooms / visitorsByYear[row.year]) * 1000).toFixed(2)),
+        }));
+
     return {
         totalHotels,
         totalRooms,
         avgRoomsPerHotel: totalHotels ? (totalRooms / totalHotels).toFixed(1) : "0",
         regions,
         yearlyTrends: Object.values(trendMap).sort((a, b) => a.year - b.year),
+        capacityVsDemand,
     };
 }
