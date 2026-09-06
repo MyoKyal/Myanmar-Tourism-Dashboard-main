@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import {
   Lightbulb, ArrowUpRight, CheckCircle2, Sparkles, Loader2,
-  Flag, CalendarDays, Users, Briefcase, MapPin,
+  Flag, CalendarDays, Users, Briefcase, MapPin, CalendarClock,
   Building2, MapPinned, Hotel, Bot,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -47,7 +47,7 @@ export default function DecisionsPage() {
   const { filters } = useGlobalFilters();
   const { language, theme, t } = usePreferences();
   const [insights, setInsights] = useState<any[]>([]);
-  const [input, setInput] = useState({ budget: 1000000, nationality: 'Myanmar', days: 5, travelers: 1, purpose: 'leisure' as const, preferredRegion: 'any' as const });
+  const [input, setInput] = useState({ budget: 1000000, nationality: 'Myanmar', days: 5, travelers: 1, purpose: 'leisure' as const, preferredRegion: 'any' as const, travelMonth: 'any' });
   const [currency, setCurrency] = useState<Currency>('MMK');
   const [recommendation, setRecommendation] = useState<any>(null);
   const [generating, setGenerating] = useState(false);
@@ -79,7 +79,7 @@ export default function DecisionsPage() {
     setGenerating(true);
     try {
       const budgetUSD = currency === 'MMK' ? input.budget / MMK_PER_USD : input.budget;
-      setRecommendation(await makeTravelDecision({ ...input, budget: budgetUSD }));
+      setRecommendation(await makeTravelDecision({ ...input, budget: budgetUSD, travelMonth: input.travelMonth === 'any' ? undefined : input.travelMonth }));
     } finally {
       setGenerating(false);
     }
@@ -105,7 +105,7 @@ export default function DecisionsPage() {
           </div>
         </div>
 
-        <form onSubmit={decide} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 items-start">
+        <form onSubmit={decide} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-7 gap-4 items-start">
           <label className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-semibold text-slate-400">{t('Total Budget / Person')}</span>
@@ -138,6 +138,23 @@ export default function DecisionsPage() {
           <Field icon={Users} label={t('Travellers')} hint={t('1-20 travellers')}>
             <input type="number" min="1" max="20" value={input.travelers} onChange={e => setInput({ ...input, travelers: Number(e.target.value) })} className={inputClass} />
           </Field>
+          <Field icon={CalendarClock} label={t('Travel Month')} hint={t('Improves the match')}>
+            <select value={input.travelMonth} onChange={e => setInput({ ...input, travelMonth: e.target.value })} className={inputClass + " appearance-none"}>
+              <option value="any">{t('Not sure yet')}</option>
+              <option value="January">{t('January')}</option>
+              <option value="February">{t('February')}</option>
+              <option value="March">{t('March')}</option>
+              <option value="April">{t('April')}</option>
+              <option value="May">{t('May')}</option>
+              <option value="June">{t('June')}</option>
+              <option value="July">{t('July')}</option>
+              <option value="August">{t('August')}</option>
+              <option value="September">{t('September')}</option>
+              <option value="October">{t('October')}</option>
+              <option value="November">{t('November')}</option>
+              <option value="December">{t('December')}</option>
+            </select>
+          </Field>
           <Field icon={Briefcase} label={t('Purpose')}>
             <select value={input.purpose} onChange={e => setInput({ ...input, purpose: e.target.value as any })} className={inputClass + " appearance-none"}>
               <option value="leisure">{t('Leisure')}</option>
@@ -169,7 +186,7 @@ export default function DecisionsPage() {
           <button
             type="submit"
             disabled={generating}
-            className="xl:col-span-6 md:col-span-2 rounded-lg bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-500 hover:via-blue-500 hover:to-purple-500 hover:shadow-cyan-500/30 transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="xl:col-span-7 md:col-span-2 rounded-lg bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-500 hover:via-blue-500 hover:to-purple-500 hover:shadow-cyan-500/30 transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {generating ? (
               <>

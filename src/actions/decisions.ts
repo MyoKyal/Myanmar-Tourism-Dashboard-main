@@ -1,6 +1,6 @@
 "use server";
 
-import { getDestinationProfile, getTourismCollection } from '@/lib/documentStore';
+import { getDestinationProfile, getTourismCollection, destinationProfiles, type DestinationProfile } from '@/lib/documentStore';
 import { GlobalFiltersState } from '@/lib/FilterContext';
 import { generateAiInsight } from '@/lib/ollama';
 
@@ -11,7 +11,45 @@ export type DecisionInput = {
   travelers: number;
   purpose: 'leisure' | 'business' | 'family';
   preferredRegion: 'any' | 'yangon' | 'mandalay' | 'bagan' | 'inle' | 'shan' | 'mon' | 'rakhine' | 'chin' | 'kayin' | 'kachin' | 'sagaing' | 'tanintharyi' | 'ayeyarwady' | 'naypyidaw' | 'beach';
+  /** Optional -- when given, scoring rewards shoulder-season timing and penalizes
+   *  off-season travel to seasonal destinations instead of staying blind to timing. */
+  travelMonth?: string;
 };
+
+// Yangon, Mandalay, and Naypyidaw are Myanmar's actual commercial/administrative hubs
+// (Naypyidaw is the capital; Yangon and Mandalay are the two largest business centers) --
+// a real-world fact, not an arbitrary preference, used to weight business-purpose trips.
+const BUSINESS_HUBS = new Set(['Yangon', 'Mandalay', 'Naypyidaw']);
+
+// Budget fit as a smooth curve rather than a hard threshold: a budget that barely covers
+// the destination's typical daily cost is risky (low score), a budget that comfortably
+// clears it without wildly overshooting scores best, and a budget many times over "wastes"
+// precision without being wrong, so it decays gently rather than dropping off a cliff.
+function budgetFitScore(ratio: number): number {
+  if (ratio < 0.5) return 10;
+  if (ratio < 0.65) return 30;
+  if (ratio < 1.0) return 55;
+  if (ratio <= 1.5) return 100 - Math.abs(ratio - 1.15) * 40;
+  if (ratio <= 3) return Math.max(40, 100 - (ratio - 1.5) * 25);
+  return 35;
+}
+
+// Multi-factor fit score (0-100) for one destination against this trip's actual inputs --
+// replaces the old fixed 2-3-bucket threshold that only ever considered budget size and
+// ignored safety, purpose, and timing entirely.
+function scoreDestination(profile: DestinationProfile, input: DecisionInput, dailyPerPerson: number): number {
+  const ratio = dailyPerPerson / profile.dailyCost;
+  const budgetScore = budgetFitScore(ratio);
+  // Family trips weight safety more heavily than a solo leisure or business trip would.
+  const safetyWeight = input.purpose === 'family' ? 0.35 : input.purpose === 'business' ? 0.2 : 0.25;
+  let score = budgetScore * (1 - safetyWeight) + profile.safetyScore * safetyWeight;
+  if (input.purpose === 'business' && BUSINESS_HUBS.has(profile.destination)) score += 15;
+  if (input.travelMonth) {
+    if (profile.shoulderMonths.includes(input.travelMonth)) score += 8; // ideal: good weather, thinner crowds
+    else if (!profile.peakMonths.includes(input.travelMonth)) score -= 5; // off-season: some seasonal destinations scale back
+  }
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
 
 export async function getDecisionInsights(filters: GlobalFiltersState) {
   const arrivals = await getTourismCollection('arrival');
@@ -56,18 +94,43 @@ export async function makeTravelDecision(input: DecisionInput) {
   const totalBudget = budget * travelers;
   const dailyPerPerson = budget / days;
   const destinationMap: Record<string, string> = { yangon: 'Yangon', mandalay: 'Mandalay', bagan: 'Bagan', inle: 'Inle Lake', shan: 'Shan State', mon: 'Mon State', rakhine: 'Rakhine State', chin: 'Chin State', kayin: 'Kayin State', kachin: 'Kachin State', sagaing: 'Sagaing Region', tanintharyi: 'Tanintharyi Region', ayeyarwady: 'Ayeyarwady Region', naypyidaw: 'Naypyidaw', beach: 'Ngapali Beach' };
-  // Thresholds are scaled to destinationProfiles.dailyCost (documentStore.ts), which was
-  // rescaled to match Myanmar's real "Average Expenditure per day per person" -- roughly
-  // $88-236/day, averaging ~$123 -- rather than the old $32-86 synthetic placeholder range.
-  const destination = input.preferredRegion === 'any' ? (input.purpose === 'business' ? 'Yangon' : dailyPerPerson >= 233 ? 'Ngapali Beach' : dailyPerPerson >= 123 ? 'Bagan + Inle Lake' : 'Yangon + Bago') : destinationMap[input.preferredRegion];
-  const profile = await getDestinationProfile(destination.split(' + ')[0], input.nationality);
+
+  // Score every destination in the catalog (documentStore.ts's destinationProfiles) against
+  // this trip's actual budget, purpose, and (if given) travel month -- replaces the old
+  // fixed 2-3-bucket threshold that only ever looked at raw budget size for "any region",
+  // and never scored an explicitly-picked region against the trip at all.
+  const ranked = destinationProfiles
+    .map((profile) => ({ profile, score: scoreDestination(profile, input, dailyPerPerson) }))
+    .sort((a, b) => b.score - a.score);
+
+  let destination: string;
+  let matchScore: number;
+  let rank: number;
+  if (input.preferredRegion === 'any') {
+    destination = ranked[0].profile.destination;
+    matchScore = ranked[0].score;
+    rank = 1;
+  } else {
+    destination = destinationMap[input.preferredRegion];
+    const index = ranked.findIndex((r) => r.profile.destination === destination);
+    matchScore = index >= 0 ? ranked[index].score : 50;
+    rank = index >= 0 ? index + 1 : ranked.length;
+  }
+
+  const profile = await getDestinationProfile(destination, input.nationality);
   const recommendedDailyCost = profile?.dailyCost || 123;
   const isAsean = ['Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'Brunei', 'Cambodia', 'Laos'].some((country) => input.nationality.toLowerCase().includes(country.toLowerCase()));
   const visaNote = profile?.visaRule || (isAsean ? 'ASEAN passport: check the current visa exemption/arrival rules before booking.' : 'Non-ASEAN passport: budget time and fees for an eVisa or embassy process.');
   const visaNoteMm = profile?.visaRule || (isAsean ? 'အာဆီယံနိုင်ငံကူးလက်မှတ်: မှာယူမီ လက်ရှိဗီဇာကင်းလွတ်ခွင့်/ရောက်ရှိချက်စည်းမျဉ်းများကို စစ်ဆေးပါ။' : 'အာဆီယံမဟုတ်သော နိုင်ငံကူးလက်မှတ်: eVisa သို့မဟုတ် သံရုံးလုပ်ငန်းစဉ်အတွက် အချိန်နှင့်စရိတ်ကို ကြိုတင်စီစဉ်ထားပါ။');
   const risk = dailyPerPerson < recommendedDailyCost * 0.65 ? 'high' : dailyPerPerson < recommendedDailyCost ? 'medium' : 'low';
-  const reasons = [`${days} days × ${travelers} traveller(s)`, `${input.purpose} itinerary`, risk === 'low' ? 'Comfortable budget buffer' : 'Budget needs careful monitoring'];
-  const reasonsMm = [`${days} ရက် × ခရီးသွား ${travelers} ဦး`, `${input.purpose === 'leisure' ? 'အပန်းဖြေ' : input.purpose === 'business' ? 'စီးပွားရေး' : 'မိသားစု'} ခရီးစဉ်`, risk === 'low' ? 'ဘတ်ဂျက် လုံလောက်စွာ ရရှိနိုင်သည်' : 'ဘတ်ဂျက်ကို ဂရုတစိုက် စောင့်ကြည့်ရန်လိုအပ်သည်'];
+  const fitReason = rank === 1
+    ? `Best fit among all ${ranked.length} tracked destinations for this budget and purpose`
+    : `Ranked #${rank} of ${ranked.length} tracked destinations for this budget and purpose`;
+  const fitReasonMm = rank === 1
+    ? `ဤဘတ်ဂျက်နှင့် ရည်ရွယ်ချက်အတွက် ခြေရာခံထားသော ခရီးစဉ်ဇုန် ${ranked.length} ခုအနက် အသင့်တော်ဆုံး`
+    : `ဤဘတ်ဂျက်နှင့် ရည်ရွယ်ချက်အတွက် ခြေရာခံထားသော ခရီးစဉ်ဇုန် ${ranked.length} ခုအနက် အဆင့် #${rank}`;
+  const reasons = [`${days} days × ${travelers} traveller(s)`, `${input.purpose} itinerary`, fitReason, risk === 'low' ? 'Comfortable budget buffer' : 'Budget needs careful monitoring'];
+  const reasonsMm = [`${days} ရက် × ခရီးသွား ${travelers} ဦး`, `${input.purpose === 'leisure' ? 'အပန်းဖြေ' : input.purpose === 'business' ? 'စီးပွားရေး' : 'မိသားစု'} ခရီးစဉ်`, fitReasonMm, risk === 'low' ? 'ဘတ်ဂျက် လုံလောက်စွာ ရရှိနိုင်သည်' : 'ဘတ်ဂျက်ကို ဂရုတစိုက် စောင့်ကြည့်ရန်လိုအပ်သည်'];
   const visaNoteMmFinal = profile?.visaRuleMm || visaNoteMm;
 
   // AI Insight: a local Ollama model reasons over the same computed facts (destination,
@@ -84,8 +147,10 @@ Duration: ${days} days, ${travelers} traveller(s)
 Budget: $${Math.round(dailyPerPerson)}/day per person (typical for this destination: $${recommendedDailyCost}/day)
 Budget risk level: ${risk}
 Safety score: ${profile?.safetyScore ?? 50}/100
-Peak season: ${(profile?.peakMonths || []).join(', ') || 'varies year-round'}`;
+Peak season: ${(profile?.peakMonths || []).join(', ') || 'varies year-round'}
+${input.travelMonth ? `Planned travel month: ${input.travelMonth}` : ''}
+Match rank: #${rank} of ${ranked.length} tracked destinations for this trip`;
   const aiInsight = await generateAiInsight(aiPrompt);
 
-  return { decision: `Choose ${destination}`, decisionMm: `${destination} ကို ရွေးချယ်ပါ`, destination, estimatedSpend: Math.round(totalBudget * 0.88), reserve: Math.round(totalBudget * 0.12), dailyPerPerson: Math.round(dailyPerPerson), benchmarkDailyCost: recommendedDailyCost, visaNote, visaNoteMm: visaNoteMmFinal, safetyScore: profile?.safetyScore || 50, safetyNotes: profile?.safetyNotes || 'Verify current local advisories.', safetyNotesMm: profile?.safetyNotesMm || 'လက်ရှိ ဒေသန္တရအကြံပြုချက်များကို စစ်ဆေးပါ။', peakMonths: profile?.peakMonths || [], shoulderMonths: profile?.shoulderMonths || [], risk, confidence: input.preferredRegion === 'any' ? 76 : 91, reasons, reasonsMm, aiInsight };
+  return { decision: `Choose ${destination}`, decisionMm: `${destination} ကို ရွေးချယ်ပါ`, destination, estimatedSpend: Math.round(totalBudget * 0.88), reserve: Math.round(totalBudget * 0.12), dailyPerPerson: Math.round(dailyPerPerson), benchmarkDailyCost: recommendedDailyCost, visaNote, visaNoteMm: visaNoteMmFinal, safetyScore: profile?.safetyScore || 50, safetyNotes: profile?.safetyNotes || 'Verify current local advisories.', safetyNotesMm: profile?.safetyNotesMm || 'လက်ရှိ ဒေသန္တရအကြံပြုချက်များကို စစ်ဆေးပါ။', peakMonths: profile?.peakMonths || [], shoulderMonths: profile?.shoulderMonths || [], risk, confidence: matchScore, rank, totalDestinations: ranked.length, reasons, reasonsMm, aiInsight };
 }
