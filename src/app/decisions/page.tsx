@@ -215,9 +215,16 @@ export default function DecisionsPage() {
                 <p className={`text-xs font-bold uppercase tracking-widest ${isLight ? 'text-cyan-700' : 'text-cyan-400'}`}>{t('Recommendation')} · {recommendation.confidence}% {t('confidence')}</p>
                 <h3 className="text-2xl font-extrabold text-white mt-1">{text ? recommendation.decisionMm : recommendation.decision}</h3>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase border ${recommendation.risk === 'low' ? (isLight ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-emerald-900/40 border-emerald-800/50 text-emerald-400') : recommendation.risk === 'medium' ? (isLight ? 'bg-amber-100 border-amber-200 text-amber-700' : 'bg-amber-900/40 border-amber-800/50 text-amber-400') : (isLight ? 'bg-rose-100 border-rose-200 text-rose-700' : 'bg-rose-900/40 border-rose-800/50 text-rose-400')}`}>
-                {t(recommendation.risk)} {t('budget risk')}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {recommendation.destinationType && (
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase border ${isLight ? 'bg-indigo-100 border-indigo-200 text-indigo-700' : 'bg-indigo-900/40 border-indigo-800/50 text-indigo-400'}`} title={t('Data-driven category (k-means clustering by cost and safety), shown for context alongside the recommendation above.')}>
+                    {text ? recommendation.destinationTypeMm : recommendation.destinationType}
+                  </span>
+                )}
+                <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase border ${recommendation.risk === 'low' ? (isLight ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-emerald-900/40 border-emerald-800/50 text-emerald-400') : recommendation.risk === 'medium' ? (isLight ? 'bg-amber-100 border-amber-200 text-amber-700' : 'bg-amber-900/40 border-amber-800/50 text-amber-400') : (isLight ? 'bg-rose-100 border-rose-200 text-rose-700' : 'bg-rose-900/40 border-rose-800/50 text-rose-400')}`}>
+                  {t(recommendation.risk)} {t('budget risk')}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 text-sm">

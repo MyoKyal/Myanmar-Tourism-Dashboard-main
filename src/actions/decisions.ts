@@ -3,6 +3,7 @@
 import { getDestinationProfile, getTourismCollection, destinationProfiles, type DestinationProfile } from '@/lib/documentStore';
 import { GlobalFiltersState } from '@/lib/FilterContext';
 import { generateAiInsight } from '@/lib/ollama';
+import { getClusterForDestination } from '@/lib/destinationClusters';
 
 export type DecisionInput = {
   budget: number;
@@ -119,6 +120,10 @@ export async function makeTravelDecision(input: DecisionInput) {
 
   const profile = await getDestinationProfile(destination, input.nationality);
   const recommendedDailyCost = profile?.dailyCost || 123;
+  // Data-driven destination type (k-means clustering over cost + safety across all 18
+  // destinations, see destinationClusters.ts) -- an independent, algorithmic categorization
+  // shown alongside the scoring-based recommendation above, not a factor in its ranking.
+  const destinationCluster = getClusterForDestination(destination);
   const isAsean = ['Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'Brunei', 'Cambodia', 'Laos'].some((country) => input.nationality.toLowerCase().includes(country.toLowerCase()));
   const visaNote = profile?.visaRule || (isAsean ? 'ASEAN passport: check the current visa exemption/arrival rules before booking.' : 'Non-ASEAN passport: budget time and fees for an eVisa or embassy process.');
   const visaNoteMm = profile?.visaRule || (isAsean ? 'အာဆီယံနိုင်ငံကူးလက်မှတ်: မှာယူမီ လက်ရှိဗီဇာကင်းလွတ်ခွင့်/ရောက်ရှိချက်စည်းမျဉ်းများကို စစ်ဆေးပါ။' : 'အာဆီယံမဟုတ်သော နိုင်ငံကူးလက်မှတ်: eVisa သို့မဟုတ် သံရုံးလုပ်ငန်းစဉ်အတွက် အချိန်နှင့်စရိတ်ကို ကြိုတင်စီစဉ်ထားပါ။');
@@ -152,5 +157,5 @@ ${input.travelMonth ? `Planned travel month: ${input.travelMonth}` : ''}
 Match rank: #${rank} of ${ranked.length} tracked destinations for this trip`;
   const aiInsight = await generateAiInsight(aiPrompt);
 
-  return { decision: `Choose ${destination}`, decisionMm: `${destination} ကို ရွေးချယ်ပါ`, destination, estimatedSpend: Math.round(totalBudget * 0.88), reserve: Math.round(totalBudget * 0.12), dailyPerPerson: Math.round(dailyPerPerson), benchmarkDailyCost: recommendedDailyCost, visaNote, visaNoteMm: visaNoteMmFinal, safetyScore: profile?.safetyScore || 50, safetyNotes: profile?.safetyNotes || 'Verify current local advisories.', safetyNotesMm: profile?.safetyNotesMm || 'လက်ရှိ ဒေသန္တရအကြံပြုချက်များကို စစ်ဆေးပါ။', peakMonths: profile?.peakMonths || [], shoulderMonths: profile?.shoulderMonths || [], risk, confidence: matchScore, rank, totalDestinations: ranked.length, reasons, reasonsMm, aiInsight };
+  return { decision: `Choose ${destination}`, decisionMm: `${destination} ကို ရွေးချယ်ပါ`, destination, estimatedSpend: Math.round(totalBudget * 0.88), reserve: Math.round(totalBudget * 0.12), dailyPerPerson: Math.round(dailyPerPerson), benchmarkDailyCost: recommendedDailyCost, visaNote, visaNoteMm: visaNoteMmFinal, safetyScore: profile?.safetyScore || 50, safetyNotes: profile?.safetyNotes || 'Verify current local advisories.', safetyNotesMm: profile?.safetyNotesMm || 'လက်ရှိ ဒေသန္တရအကြံပြုချက်များကို စစ်ဆေးပါ။', peakMonths: profile?.peakMonths || [], shoulderMonths: profile?.shoulderMonths || [], risk, confidence: matchScore, rank, totalDestinations: ranked.length, reasons, reasonsMm, aiInsight, destinationType: destinationCluster?.label ?? null, destinationTypeMm: destinationCluster?.labelMm ?? null };
 }

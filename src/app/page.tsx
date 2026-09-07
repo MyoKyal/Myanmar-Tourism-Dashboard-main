@@ -5,12 +5,13 @@ import { useLiveData } from "@/lib/useLiveData";
 import GlobalFilters from "@/components/GlobalFilters";
 import { getOverviewKPIs, getOverviewChartsData } from "@/actions/tourism";
 import { getBusinessSnapshot } from "@/actions/businessSnapshot";
+import { getCorrelationInsights } from "@/actions/insights";
 import { KPICard } from "@/components/KPICard";
 import { PageSkeleton } from "@/components/Skeleton";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
-import { Plane, Users, Hotel, DollarSign, Bed, Landmark, Target, Award } from "lucide-react";
+import { Plane, Users, Hotel, DollarSign, Bed, Landmark, Target, Award, GitCompareArrows } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar
@@ -18,15 +19,26 @@ import {
 
 export default function OverviewDashboard() {
   const { filters } = useGlobalFilters();
-  const { t } = usePreferences();
+  const { t, language } = usePreferences();
+  const text = language === 'my';
 
   const { data, loading, lastUpdated } = useLiveData(async () => {
-    const [kpis, charts, business] = await Promise.all([getOverviewKPIs(filters), getOverviewChartsData(filters), getBusinessSnapshot(filters)]);
-    return { kpis, charts, business };
+    const [kpis, charts, business, correlations] = await Promise.all([getOverviewKPIs(filters), getOverviewChartsData(filters), getBusinessSnapshot(filters), getCorrelationInsights()]);
+    return { kpis, charts, business, correlations };
   }, [filters]);
   const kpiData = data?.kpis;
   const chartData = data?.charts;
   const business = data?.business;
+  const correlations = data?.correlations;
+
+  // Color by direction + magnitude rather than a fixed palette per card, so the strongest
+  // relationships are visually louder than the weak/negligible ones.
+  const correlationColor = (direction: string, r: number | null) => {
+    const abs = Math.abs(r ?? 0);
+    if (direction === 'none' || r == null) return { border: 'border-slate-700/50', text: 'text-slate-400', bg: 'bg-slate-800/40' };
+    if (direction === 'positive') return abs >= 0.7 ? { border: 'border-emerald-800/50', text: 'text-emerald-400', bg: 'bg-emerald-900/30' } : { border: 'border-cyan-800/50', text: 'text-cyan-400', bg: 'bg-cyan-900/30' };
+    return abs >= 0.7 ? { border: 'border-rose-800/50', text: 'text-rose-400', bg: 'bg-rose-900/30' } : { border: 'border-amber-800/50', text: 'text-amber-400', bg: 'bg-amber-900/30' };
+  };
 
   const formatNumber = (num: number) => new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(num || 0);
 
@@ -166,6 +178,35 @@ export default function OverviewDashboard() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+          </div>
+
+          {/* Correlation Insights -- Pearson correlation coefficients between real metric
+              pairs, not just two charts placed side by side. Every pair is drawn from data
+              already ingested for other features this session, aligned to their shared
+              years; n (years of overlapping data) is shown alongside r since ~10-year
+              series support a suggestive read, not a statistically airtight one. */}
+          <div className="glass-panel p-6 mt-4">
+            <h3 className="text-lg font-bold mb-1 text-slate-100 flex items-center gap-2">
+              <GitCompareArrows className="w-5 h-5 text-cyan-400" />
+              {t("Correlation Insights")}
+            </h3>
+            <p className="text-xs text-slate-500">{t("How strongly key metrics actually move together across years, measured with Pearson correlation (r).")}</p>
+            <p className="text-xs text-slate-500 mb-5 italic">{t("Correlation shows two metrics moved together, not that one caused the other -- e.g. hotel supply and arrivals decoupled during the pandemic years, not because either drove the other down.")}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(correlations || []).map((c: any) => {
+                const color = correlationColor(c.direction, c.r);
+                return (
+                  <div key={c.id} className={`rounded-lg border p-4 ${color.border} ${color.bg}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-semibold text-slate-200">{text ? c.labelMm : c.label}</p>
+                      <span className={`shrink-0 text-lg font-extrabold ${color.text}`}>{c.r != null ? `r=${c.r}` : t("N/A")}</span>
+                    </div>
+                    <p className={`text-xs font-bold uppercase tracking-widest mt-1 ${color.text}`}>{text ? c.strengthMm : c.strength}</p>
+                    <p className="text-[11px] text-slate-500 mt-1">{t("Based on")} {c.n} {t("years of overlapping data")}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </>

@@ -2,6 +2,7 @@
 
 import { getAnalyticsRows } from "@/lib/documentStore";
 import { GlobalFiltersState } from "@/lib/FilterContext";
+import { detectAnomalies } from "@/lib/statistics";
 
 const GATEWAYS = ["International Airports", "Cruise (By Sea)", "Land Borders Total"];
 const MONTH_ORDER = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -12,9 +13,13 @@ export async function getTrendsData(filters: GlobalFiltersState) {
     // the other analytics pages use -- collapsing to one year would break those charts.
     const range = filters.yearRange ? { fromYear: filters.yearRange[0], toYear: filters.yearRange[1] } : {};
 
-    const [factsRows, monthlyRows] = await Promise.all([
+    const [factsRows, monthlyRows, allFactsRows] = await Promise.all([
         getAnalyticsRows("fast_facts", range),
         getAnalyticsRows("monthly_visitors"),
+        // Anomaly detection always runs over the full 2015-2025 history regardless of the
+        // page's From/To year filter -- a z-score computed only within a narrow filtered
+        // window has too few points (and no view of the real baseline) to mean anything.
+        getAnalyticsRows("fast_facts"),
     ]);
 
     // 1. Yearly Arrivals
@@ -35,6 +40,28 @@ export async function getTrendsData(filters: GlobalFiltersState) {
             yoy = ((total - totalsByYear[years[index - 1]]) / totalsByYear[years[index - 1]]) * 100;
         }
         return { year, total, yoy: parseFloat(yoy.toFixed(1)) };
+    });
+
+    // 1b. Anomaly detection -- flags years whose arrivals total is an unusual outlier
+    // against the *full* 2015-2025 series (z-score >= 1.5 standard deviations from the
+    // mean), then maps those flags onto whichever years are in view after filtering. A
+    // dashboard reader shouldn't have to eyeball the chart to notice the pandemic crash
+    // was statistically extreme, not just "a bit lower."
+    const allTotalsByYear: Record<number, number> = {};
+    allFactsRows
+        .filter((row) => GATEWAYS.includes(String(row.gateway)))
+        .forEach((row) => {
+            const year = Number(row.year);
+            allTotalsByYear[year] = (allTotalsByYear[year] || 0) + Number(row.visitors || 0);
+        });
+    const anomalyByYear = new Map(
+        detectAnomalies(
+            Object.entries(allTotalsByYear).map(([year, value]) => ({ year: Number(year), value }))
+        ).map((row) => [row.year, row])
+    );
+    const yearlyWithAnomalies = yearly.map((row) => {
+        const anomaly = anomalyByYear.get(row.year);
+        return { ...row, zScore: anomaly?.zScore ?? 0, isAnomaly: anomaly?.isAnomaly ?? false };
     });
 
     // 2. Monthly Seasonality
@@ -105,7 +132,7 @@ export async function getTrendsData(filters: GlobalFiltersState) {
     }
 
     return {
-        yearly,
+        yearly: yearlyWithAnomalies,
         seasonality,
         periods,
         forecast,

@@ -29,6 +29,7 @@ export default function TrendsPage() {
     };
 
     const trendYoY = getLatestYoY();
+    const anomalyYears = (data?.yearly || []).filter((r: any) => r.isAnomaly).map((r: any) => r.year);
 
     const exportRows = [
         ...(data?.yearly || []).map((r: any) => ({ year: r.year, visitors: r.total, yoy_growth_pct: r.yoy, type: "actual" })),
@@ -93,10 +94,15 @@ export default function TrendsPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
                         {/* YoY Trend Line Chart */}
                         <div className="glass-panel p-6 flex flex-col h-[400px]">
-                            <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
+                            <h3 className="text-lg font-bold mb-1 text-slate-100 flex items-center gap-2">
                                 <div className="w-2 h-6 bg-cyan-500 rounded-sm" />
                                 {t("Year-over-Year Growth Trend")}
                             </h3>
+                            <p className="text-xs text-slate-500 mb-4">
+                                {anomalyYears.length
+                                    ? `${t("Statistical outliers (z-score ≥ 1.5) highlighted in red:")} ${anomalyYears.join(', ')}`
+                                    : t("No statistical outliers detected in this range.")}
+                            </p>
                             <div className="flex-1 w-full h-full min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <ComposedChart data={data?.yearly || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -107,12 +113,18 @@ export default function TrendsPage() {
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
                                             itemStyle={{ color: '#22d3ee' }}
-                                            formatter={(val: any, name: any) => [
-                                                name === 'total' ? new Intl.NumberFormat('en-US').format(val) : `${val}%`,
+                                            formatter={(val: any, name: any, item: any) => [
+                                                name === 'total'
+                                                    ? `${new Intl.NumberFormat('en-US').format(val)}${item?.payload?.isAnomaly ? ` (${t('outlier')}, z=${item.payload.zScore})` : ''}`
+                                                    : `${val}%`,
                                                 name === 'total' ? t('Visitors') : t('YoY Growth')
                                             ]}
                                         />
-                                        <Bar yAxisId="left" dataKey="total" name={t("Visitors")} fill="#334155" radius={[4, 4, 0, 0]} />
+                                        <Bar yAxisId="left" dataKey="total" name={t("Visitors")} radius={[4, 4, 0, 0]}>
+                                            {(data?.yearly || []).map((row: any) => (
+                                                <Cell key={row.year} fill={row.isAnomaly ? '#f43f5e' : '#334155'} />
+                                            ))}
+                                        </Bar>
                                         <Line yAxisId="right" type="monotone" dataKey="yoy" name={t("YoY Growth")} stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "#020617" }} />
                                     </ComposedChart>
                                 </ResponsiveContainer>
