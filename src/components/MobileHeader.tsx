@@ -7,7 +7,7 @@ export default function MobileHeader() {
     const { language, setMobileNavOpen, t } = usePreferences();
 
     return (
-        <div className="lg:hidden sticky top-0 z-30 h-14 flex items-center gap-3 px-4 border-b border-white/10 bg-slate-900/70 backdrop-blur-xl mobile-header">
+        <div className="print:hidden lg:hidden sticky top-0 z-30 h-14 flex items-center gap-3 px-4 border-b border-white/10 bg-slate-900/70 backdrop-blur-xl mobile-header">
             <button
                 onClick={() => setMobileNavOpen(true)}
                 className="p-2 -ml-2 rounded-lg text-slate-300 hover:bg-white/10"

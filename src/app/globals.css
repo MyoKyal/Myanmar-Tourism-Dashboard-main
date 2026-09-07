@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* Print support -- lets a user actually save/share something generated in the app (e.g.
+ * the Decision Center recommendation) instead of it only existing on-screen until the next
+ * reload. Hides app chrome and anything marked .print-hidden, and forces the printable
+ * area to plain light colors since the app's dark glass-panel styling doesn't print well
+ * (translucent backgrounds print as solid black, backdrop blur does nothing on paper). */
+@media print {
+  html, body { background: #fff !important; height: auto !important; overflow: visible !important; }
+  main { overflow: visible !important; }
+  .print-area {
+    background: #fff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  .print-area * {
+    color: #0f172a !important;
+    text-shadow: none !important;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

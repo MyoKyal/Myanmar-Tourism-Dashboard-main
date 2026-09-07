@@ -5,7 +5,7 @@ import type { FormEvent, ReactNode } from 'react';
 import {
   Lightbulb, ArrowUpRight, CheckCircle2, Sparkles, Loader2,
   Flag, CalendarDays, Users, Briefcase, MapPin, CalendarClock,
-  Building2, MapPinned, Hotel, Bot, ShieldAlert, ExternalLink,
+  Building2, MapPinned, Hotel, Bot, ShieldAlert, ExternalLink, Printer,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { getDecisionInsights, makeTravelDecision } from '@/actions/decisions';
@@ -89,13 +89,13 @@ export default function DecisionsPage() {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      <div>
+      <div className="print:hidden">
         <h1 className="text-3xl font-extrabold tracking-tight text-white">{text ? 'ဆုံးဖြတ်ချက် စင်တာ' : 'Decision Center'}</h1>
         <p className="text-slate-400 mt-2">{text ? 'ဒေတာမှ လုပ်ဆောင်နိုင်သော အကြံပြုချက်များကို ရယူပါ။' : 'Turn tourism data into practical planning actions.'}</p>
       </div>
 
       <section className="glass-panel p-6">
-        <div className="flex items-start gap-3 mb-6">
+        <div className="print:hidden flex items-start gap-3 mb-6">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${isLight ? 'bg-purple-100 border-purple-200 text-purple-700' : 'bg-purple-900/40 text-purple-400 border-purple-800/30'}`}>
             <Sparkles className="w-5 h-5" />
           </div>
@@ -105,7 +105,7 @@ export default function DecisionsPage() {
           </div>
         </div>
 
-        <form onSubmit={decide} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-7 gap-4 items-start">
+        <form onSubmit={decide} className="print:hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-7 gap-4 items-start">
           <label className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-semibold text-slate-400">{t('Total Budget / Person')}</span>
@@ -203,13 +203,26 @@ export default function DecisionsPage() {
         </form>
 
         {!recommendation && !generating && (
-          <div className="mt-6 rounded-xl border border-dashed border-slate-700/50 p-6 text-center text-sm text-slate-500">
+          <div className="print:hidden mt-6 rounded-xl border border-dashed border-slate-700/50 p-6 text-center text-sm text-slate-500">
             {t('Fill in your trip details above and click Generate to see a personalized recommendation here.')}
           </div>
         )}
 
         {recommendation && (
-          <div className={`mt-6 rounded-xl border p-5 shadow-inner ${isLight ? 'border-cyan-200 bg-cyan-50' : 'border-cyan-800/50 bg-cyan-950/30'}`}>
+          <div className={`print-area mt-6 rounded-xl border p-5 shadow-inner ${isLight ? 'border-cyan-200 bg-cyan-50' : 'border-cyan-800/50 bg-cyan-950/30'}`}>
+            <div className="hidden print:block mb-4 pb-3 border-b border-slate-300">
+              <p className="text-sm font-bold">{t('Myanmar Tourism Dashboard')} · {t('Decision Center')}</p>
+              <p className="text-xs text-slate-500">{t('Generated on')} {new Date().toLocaleDateString(text ? 'my' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            </div>
+            <div className="print:hidden flex justify-end mb-3">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${isLight ? 'border-slate-300 text-slate-700 hover:bg-slate-100' : 'border-slate-700 text-slate-300 hover:bg-slate-800'}`}
+              >
+                <Printer className="w-3.5 h-3.5" /> {t('Print / Save as PDF')}
+              </button>
+            </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className={`text-xs font-bold uppercase tracking-widest ${isLight ? 'text-cyan-700' : 'text-cyan-400'}`}>{t('Recommendation')} · {recommendation.confidence}% {t('confidence')}</p>
@@ -286,7 +299,7 @@ export default function DecisionsPage() {
         )}
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="print:hidden grid grid-cols-1 lg:grid-cols-3 gap-5">
         {insights.map((insight) => {
           const Icon = insightIcon(insight.title);
           return (
@@ -310,7 +323,7 @@ export default function DecisionsPage() {
         })}
       </div>
 
-      <div className="glass-panel p-5 flex items-start gap-3 text-sm text-slate-400">
+      <div className="print:hidden glass-panel p-5 flex items-start gap-3 text-sm text-slate-400">
         <CheckCircle2 className={`w-5 h-5 shrink-0 ${isLight ? 'text-emerald-600' : 'text-emerald-500'}`} />
         {text ? 'အကြံပြုချက်များသည် ၂၀၂၅ ခန့်မှန်းဒေတာ ပါဝင်သောကြောင့် စီမံကိန်းအတွက် အသုံးပြုပါ။' : 'Planning note: 2025 figures are modelled estimates and should be replaced with official releases before external reporting.'}
       </div>

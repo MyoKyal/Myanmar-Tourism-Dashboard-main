@@ -73,7 +73,7 @@ export default function Sidebar() {
 
             <aside
                 className={cn(
-                    "fixed left-0 top-0 h-screen w-64 flex-shrink-0 border-r border-white/10 bg-slate-900/50 backdrop-blur-xl flex flex-col z-50 transition-transform duration-300 ease-in-out",
+                    "print:hidden fixed left-0 top-0 h-screen w-64 flex-shrink-0 border-r border-white/10 bg-slate-900/50 backdrop-blur-xl flex flex-col z-50 transition-transform duration-300 ease-in-out",
                     "lg:static",
                     mobileNavOpen ? "translate-x-0" : "max-lg:-translate-x-full"
                 )}
