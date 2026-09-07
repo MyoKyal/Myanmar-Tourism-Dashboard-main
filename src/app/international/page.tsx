@@ -11,10 +11,8 @@ import { usePreferences } from "@/components/AppPreferences";
 import { Globe2, Users, Earth, TrendingUp } from "lucide-react";
 import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, PieChart, Pie, Cell, Legend, ComposedChart, Line
+    BarChart, Bar, Cell, Legend, ComposedChart, Line
 } from 'recharts';
-
-const PIE_COLORS = ['#06b6d4', '#a855f7', '#10b981', '#f59e0b', '#f43f5e'];
 
 export default function InternationalPage() {
     const { filters, setFilter } = useGlobalFilters();
@@ -22,7 +20,6 @@ export default function InternationalPage() {
     const { data, loading, lastUpdated } = useLiveData(() => getIntlTourismData(filters), [filters]);
 
     const formatNumber = (num: number) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(num || 0);
-    const aseanComparison = data?.aseanComparison?.map((row: any) => ({ ...row, name: t(row.name) }));
     const revenueBenchmark = data?.revenueBenchmark?.map((row: any) => ({ ...row, label: `${t(row.country)} (${row.year})` }));
 
     return (
@@ -36,7 +33,7 @@ export default function InternationalPage() {
             <GlobalFilters showYear />
 
             {loading ? (
-                <PageSkeleton kpis={3} charts={4} />
+                <PageSkeleton kpis={3} charts={3} />
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -128,63 +125,27 @@ export default function InternationalPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-                        {/* Top Countries Bar Chart */}
-                        <div className="glass-panel p-6 flex flex-col h-[400px]">
-                            <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
-                                <div className="w-2 h-6 bg-cyan-500 rounded-sm" />
-                                {t("Top 10 Visitor Countries")}
-                            </h3>
-                            <div className="flex-1 w-full h-full min-h-0">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={data?.topCountries || []} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                                        <XAxis type="number" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
-                                        <YAxis dataKey="country" type="category" stroke="#94a3b8" fontSize={11} width={80} tickLine={false} axisLine={false} />
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
-                                            cursor={{ fill: '#1e293b' }}
-                                            formatter={(val: any) => new Intl.NumberFormat('en-US').format(val)}
-                                        />
-                                        <Bar dataKey="visitors" name={t("Visitors")} fill="#06b6d4" radius={[0, 4, 4, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
+                    {/* Top Countries Bar Chart */}
+                    <div className="glass-panel p-6 flex flex-col h-[400px] mt-4">
+                        <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
+                            <div className="w-2 h-6 bg-cyan-500 rounded-sm" />
+                            {t("Top 10 Visitor Countries")}
+                        </h3>
+                        <div className="flex-1 w-full h-full min-h-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={data?.topCountries || []} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+                                    <XAxis type="number" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
+                                    <YAxis dataKey="country" type="category" stroke="#94a3b8" fontSize={11} width={80} tickLine={false} axisLine={false} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
+                                        cursor={{ fill: '#1e293b' }}
+                                        formatter={(val: any) => new Intl.NumberFormat('en-US').format(val)}
+                                    />
+                                    <Bar dataKey="visitors" name={t("Visitors")} fill="#06b6d4" radius={[0, 4, 4, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
-
-                        {/* ASEAN vs NON ASEAN Pie */}
-                        <div className="glass-panel p-6 flex flex-col h-[400px]">
-                            <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
-                                <div className="w-2 h-6 bg-emerald-500 rounded-sm" />
-                                {t("ASEAN vs Non-ASEAN")}
-                            </h3>
-                            <div className="flex-1 w-full h-full min-h-0 relative">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={aseanComparison || []}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={60}
-                                            outerRadius={100}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                            stroke="rgba(255,255,255,0.1)"
-                                        >
-                                            {aseanComparison?.map((entry: any, index: number) => (
-                                                <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#10b981' : '#a855f7'} />
-                      ))}
-                                        </Pie>
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
-                                            formatter={(val: any) => new Intl.NumberFormat('en-US').format(val)}
-                                        />
-                                        <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-
                     </div>
                 </>
             )}

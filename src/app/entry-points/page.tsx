@@ -11,7 +11,7 @@ import { usePreferences } from "@/components/AppPreferences";
 import { Plane, Ship, Bus, MapPinned } from "lucide-react";
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    BarChart, Bar, PieChart, Pie, Cell, Legend
+    BarChart, Bar
 } from 'recharts';
 
 export default function EntryPointsPage() {
@@ -30,7 +30,6 @@ export default function EntryPointsPage() {
     const airportsVal = getMetric("Airports");
     const bordersVal = getMetric("Land Borders");
     const seaportsVal = getMetric("Seaports");
-    const composition = data?.composition?.map((row: any) => ({ ...row, name: t(row.name) }));
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-500">
@@ -43,7 +42,7 @@ export default function EntryPointsPage() {
             <GlobalFilters showYear />
 
             {loading ? (
-                <PageSkeleton kpis={4} charts={3} />
+                <PageSkeleton kpis={4} charts={2} />
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -78,44 +77,8 @@ export default function EntryPointsPage() {
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
 
-                        {/* Composition Pie */}
-                        <div className="glass-panel p-6 flex flex-col h-[400px]">
-                            <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
-                                <div className="w-2 h-6 bg-emerald-500 rounded-sm" />
-                                {t("Category Contribution")}
-                            </h3>
-                            <div className="flex-1 w-full h-full min-h-0 relative">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={composition || []}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={70}
-                                            outerRadius={100}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                            stroke="rgba(255,255,255,0.1)"
-                                        >
-                                            {data?.composition?.map((entry: any, index: number) => {
-                                                let color = '#f59e0b'; // borders
-                                                if (entry.name === 'Airports') color = '#10b981';
-                                                if (entry.name === 'Seaports') color = '#a855f7';
-                                                return <Cell key={`cell-${index}`} fill={color} />;
-                      })}
-                                        </Pie>
-                                        <Tooltip
-                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#f8fafc' }}
-                                            formatter={(val: any) => new Intl.NumberFormat('en-US').format(val)}
-                                        />
-                                        <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-
                         {/* Sub-gateways Bar */}
-                        <div className="glass-panel p-6 flex flex-col h-[400px]">
+                        <div className="glass-panel p-6 flex flex-col h-[400px] lg:col-span-2">
                             <h3 className="text-lg font-bold mb-6 text-slate-100 flex items-center gap-2">
                                 <div className="w-2 h-6 bg-cyan-500 rounded-sm" />
                                 {t("Airports Breakdown")}

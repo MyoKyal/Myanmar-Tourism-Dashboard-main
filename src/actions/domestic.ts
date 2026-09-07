@@ -50,10 +50,6 @@ export async function getDomesticData(filters: GlobalFiltersState) {
         totalDomestic,
         totalIntl,
         regions,
-        comparison: [
-            { name: "Domestic", value: totalDomestic },
-            { name: "International", value: totalIntl },
-        ],
         yearlyTrends: Object.values(trendMap).sort((a, b) => a.year - b.year),
     };
 }
