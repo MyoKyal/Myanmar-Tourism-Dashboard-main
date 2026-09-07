@@ -5,7 +5,7 @@ import type { FormEvent, ReactNode } from 'react';
 import {
   Lightbulb, ArrowUpRight, CheckCircle2, Sparkles, Loader2,
   Flag, CalendarDays, Users, Briefcase, MapPin, CalendarClock,
-  Building2, MapPinned, Hotel, Bot,
+  Building2, MapPinned, Hotel, Bot, ShieldAlert, ExternalLink,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { getDecisionInsights, makeTravelDecision } from '@/actions/decisions';
@@ -232,6 +232,33 @@ export default function DecisionsPage() {
               <p className="text-slate-300"><strong className="text-slate-200">{t('Seasonality:')}</strong> {t('Peak')} {peakLabel}.</p>
             </div>
             <div className="mt-4 text-sm text-slate-300"><strong className="text-slate-200">{t('Safety:')}</strong> {text ? recommendation.safetyNotesMm : recommendation.safetyNotes}</div>
+
+            {/* Safety score/notes above are a static, general-conditions baseline -- not a
+                real-time conflict or security tracker. Myanmar's situation can shift by region
+                and by month, and this app has no live feed of it, so every recommendation
+                points to official, currently-maintained government sources instead of
+                implying more precision or currency than the data actually has. */}
+            <div className={`mt-4 rounded-lg border p-3 ${recommendation.safetyScore < 50 ? (isLight ? 'border-rose-200 bg-rose-50' : 'border-rose-800/40 bg-rose-950/20') : (isLight ? 'border-amber-200 bg-amber-50' : 'border-amber-800/40 bg-amber-950/20')}`}>
+              <div className="flex gap-2.5">
+                <ShieldAlert className={`w-4 h-4 shrink-0 mt-0.5 ${recommendation.safetyScore < 50 ? (isLight ? 'text-rose-600' : 'text-rose-400') : (isLight ? 'text-amber-600' : 'text-amber-400')}`} />
+                <div>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${recommendation.safetyScore < 50 ? (isLight ? 'text-rose-700' : 'text-rose-400') : (isLight ? 'text-amber-700' : 'text-amber-400')}`}>{t('Official Travel Advisory')}</p>
+                  <p className="text-sm text-slate-300 leading-relaxed">{t('The safety score and notes above reflect general, historical conditions, not real-time events. Myanmar’s security and political situation can change quickly and varies significantly by region. Always check your government’s official, current travel advisory before finalizing any trip.')}</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2.5">
+                    <a href="https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories.html" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 text-xs font-semibold underline decoration-dotted underline-offset-2 ${isLight ? 'text-slate-700 hover:text-cyan-700' : 'text-slate-300 hover:text-cyan-400'}`}>
+                      <ExternalLink className="w-3 h-3" /> US State Department
+                    </a>
+                    <a href="https://www.gov.uk/foreign-travel-advice/myanmar" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 text-xs font-semibold underline decoration-dotted underline-offset-2 ${isLight ? 'text-slate-700 hover:text-cyan-700' : 'text-slate-300 hover:text-cyan-400'}`}>
+                      <ExternalLink className="w-3 h-3" /> UK FCDO
+                    </a>
+                    <a href="https://www.smartraveller.gov.au/destinations/asia/myanmar" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 text-xs font-semibold underline decoration-dotted underline-offset-2 ${isLight ? 'text-slate-700 hover:text-cyan-700' : 'text-slate-300 hover:text-cyan-400'}`}>
+                      <ExternalLink className="w-3 h-3" /> Australia Smartraveller
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <ul className="mt-3 list-disc pl-5 text-sm text-slate-400 space-y-1">
               <li className="leading-relaxed">{t('Typical daily cost for this destination:')} {formatMoney(recommendation.benchmarkDailyCost)}</li>
               {(text ? recommendation.reasonsMm : recommendation.reasons).map((reason: string) => <li key={reason} className="leading-relaxed">{reason}</li>)}

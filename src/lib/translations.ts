@@ -200,6 +200,8 @@ export const MY: Record<string, string> = {
   "Exchange rate: 1 USD = 4,500 MMK": "လဲလှယ်နှုန်း: ၁ USD = ၄,၅၀၀ MMK",
   "Typical daily cost for this destination:": "ဤခရီးစဉ်ဇုန်အတွက် ပုံမှန်နေ့စဉ်စရိတ်:",
   "AI Insight": "AI ထိုးထွင်းအမြင်",
+  "Official Travel Advisory": "တရားဝင် ခရီးသွားအကြံပြုချက်",
+  "The safety score and notes above reflect general, historical conditions, not real-time events. Myanmar’s security and political situation can change quickly and varies significantly by region. Always check your government’s official, current travel advisory before finalizing any trip.": "အထက်ပါ လုံခြုံရေးရမှတ်နှင့် မှတ်စုများသည် ယေဘုယျ၊ သမိုင်းကြောင်းဆိုင်ရာ အခြေအနေများကိုသာ ဖော်ပြထားပြီး လက်ရှိဖြစ်ပျက်နေသော အခြေအနေများ မဟုတ်ပါ။ မြန်မာနိုင်ငံ၏ လုံခြုံရေးနှင့် နိုင်ငံရေးအခြေအနေသည် လျင်မြန်စွာ ပြောင်းလဲနိုင်ပြီး ဒေသအလိုက် သိသိသာသာ ကွဲပြားနိုင်ပါသည်။ ခရီးစဉ်တစ်ခုကို အတည်မပြုမီ သင့်နိုင်ငံ၏ တရားဝင်၊ လက်ရှိ ခရီးသွားအကြံပြုချက်ကို အမြဲစစ်ဆေးပါ။",
   "1-60 days": "၁-၆၀ ရက်",
   "1-20 travellers": "၁-၂၀ ဦး",
   "Travel Month": "ခရီးသွားမည့်လ",
