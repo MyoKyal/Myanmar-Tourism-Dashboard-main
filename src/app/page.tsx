@@ -10,7 +10,7 @@ import { PageSkeleton } from "@/components/Skeleton";
 import { ExportCsvButton } from "@/components/ExportCsvButton";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { usePreferences } from "@/components/AppPreferences";
-import { Plane, Users, Hotel, DollarSign, Bed, Landmark, Target, Gauge, Award } from "lucide-react";
+import { Plane, Users, Hotel, DollarSign, Bed, Landmark, Target, Award } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar
@@ -85,7 +85,7 @@ export default function OverviewDashboard() {
               so the headline number never appears without its trajectory. */}
           <div className="mt-2">
             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">{t("Business Snapshot")}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <KPICard
                 title={t("Tourism's Share of GDP")}
                 value={business?.gdp.valuePct != null ? `${business.gdp.valuePct}%` : t("N/A")}
@@ -103,15 +103,6 @@ export default function OverviewDashboard() {
                 sparkline={business?.revenueForecast.trend}
                 icon={Target}
                 colorClass="from-fuchsia-400 to-purple-600"
-              />
-              <KPICard
-                title={t("Rooms per 1,000 Visitors")}
-                value={business?.capacity.roomsPer1000 != null ? business.capacity.roomsPer1000.toString() : t("N/A")}
-                subtitle={business?.capacity.year ? `${business.capacity.year}` : undefined}
-                trend={business?.capacity.deltaPct != null ? { value: Math.abs(business.capacity.deltaPct), isPositive: business.capacity.deltaPct >= 0 } : undefined}
-                sparkline={business?.capacity.trend}
-                icon={Gauge}
-                colorClass="from-emerald-400 to-teal-600"
               />
               <KPICard
                 title={t("ASEAN Revenue Rank")}
