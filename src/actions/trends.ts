@@ -2,7 +2,7 @@
 
 import { getAnalyticsRows } from "@/lib/documentStore";
 import { GlobalFiltersState } from "@/lib/FilterContext";
-import { detectAnomalies } from "@/lib/statistics";
+import { detectAnomalies, trailingLinearForecast } from "@/lib/statistics";
 
 const GATEWAYS = ["International Airports", "Cruise (By Sea)", "Land Borders Total"];
 const MONTH_ORDER = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -109,27 +109,10 @@ export async function getTrendsData(filters: GlobalFiltersState) {
     // or fewer if the filtered range is shorter) to reflect the current trajectory instead.
     // Transparent, explainable projection (matches the rules-based approach used in the
     // Decision Center) rather than an opaque model.
-    let forecast: { year: number; projected: number; growthRateUsed: number; windowYears: number } | null = null;
-    const trendWindow = yearly.slice(-5);
-    if (trendWindow.length >= 2) {
-        const n = trendWindow.length;
-        const xMean = trendWindow.reduce((sum, row) => sum + row.year, 0) / n;
-        const yMean = trendWindow.reduce((sum, row) => sum + row.total, 0) / n;
-        let num = 0, den = 0;
-        for (const row of trendWindow) {
-            num += (row.year - xMean) * (row.total - yMean);
-            den += (row.year - xMean) ** 2;
-        }
-        const slope = den !== 0 ? num / den : 0;
-        const intercept = yMean - slope * xMean;
-        const nextYear = trendWindow[n - 1].year + 1;
-        const projected = Math.max(0, Math.round(slope * nextYear + intercept));
-        const lastActual = trendWindow[n - 1].total;
-        const growthRateUsed = lastActual > 0
-            ? parseFloat((((projected - lastActual) / lastActual) * 100).toFixed(1))
-            : 0;
-        forecast = { year: nextYear, projected, growthRateUsed, windowYears: n };
-    }
+    const arrivalsForecast = trailingLinearForecast(yearly.map((row) => ({ x: row.year, y: row.total })));
+    const forecast = arrivalsForecast
+        ? { year: arrivalsForecast.nextX, projected: Math.round(arrivalsForecast.projected), growthRateUsed: arrivalsForecast.growthRateUsed, windowYears: arrivalsForecast.windowYears }
+        : null;
 
     return {
         yearly: yearlyWithAnomalies,

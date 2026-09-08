@@ -5,6 +5,14 @@
  * existing CSV-derived datasets can do on their own.
  * Source: World Bank World Development Indicators, https://data.worldbank.org
  * Usage: node scripts/ingest-worldbank.cjs   (requires MONGODB_URI in .env.local)
+ *
+ * ST.INT.RCPT.CD (tourism receipts) genuinely stops at 2019-2020 for Myanmar and every ASEAN
+ * neighbor checked -- confirmed by querying the live API directly, not an artifact of when
+ * this script last ran. The four related indicators (ST.INT.ARVL, ST.INT.XPND.CD,
+ * ST.INT.TRNR.CD, ST.INT.TVLR.CD) show the same cutoff for Myanmar, so this is a real gap in
+ * World Bank's post-pandemic/coup-era reporting for the region, not something re-running this
+ * script or picking a different indicator can fix. Re-running it will pick up newer years
+ * automatically if/when the World Bank ever backfills them -- no code change needed then.
  */
 const { MongoClient } = require('mongodb');
 

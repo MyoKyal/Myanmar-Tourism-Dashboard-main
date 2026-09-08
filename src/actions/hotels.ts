@@ -2,6 +2,7 @@
 
 import { getAnalyticsRows } from "@/lib/documentStore";
 import { GlobalFiltersState } from "@/lib/FilterContext";
+import { detectAnomalies } from "@/lib/statistics";
 
 const GATEWAYS = ["International Airports", "Cruise (By Sea)", "Land Borders Total"];
 
@@ -70,12 +71,35 @@ export async function getHotelsData(filters: GlobalFiltersState) {
             roomsPer1000Visitors: Number(((row.rooms / visitorsByYear[row.year]) * 1000).toFixed(2)),
         }));
 
+    // Room-supply anomalies -- reuses the same z-score outlier test already applied to
+    // international arrivals on the Time Trends page (see statistics.ts's detectAnomalies).
+    // A year where total room count jumps or drops far more than the series' own year-to-year
+    // norm (e.g. a large new-hotel wave, or a reporting gap) is worth flagging the same way an
+    // unusual arrivals year is, rather than only ever running this check in one place. Always
+    // computed over the FULL 2015-2025 history regardless of the page's year-range filter --
+    // same reasoning as the arrivals anomaly check in trends.ts: a z-score over a narrowed
+    // window has too few points (and no real baseline) to mean anything.
+    const yearlyTrends = Object.values(trendMap).sort((a, b) => a.year - b.year);
+    const allTrendRows = await getAnalyticsRows("hotels_rooms");
+    const allRoomsByYear: Record<number, number> = {};
+    allTrendRows.forEach((row) => {
+        const year = Number(row.year);
+        allRoomsByYear[year] = (allRoomsByYear[year] || 0) + Number(row.rooms || 0);
+    });
+    const roomAnomalyByYear = new Map(
+        detectAnomalies(Object.entries(allRoomsByYear).map(([year, rooms]) => ({ year: Number(year), value: rooms }))).map((row) => [row.year, row])
+    );
+    const yearlyTrendsWithAnomalies = yearlyTrends.map((row) => {
+        const anomaly = roomAnomalyByYear.get(row.year);
+        return { ...row, zScore: anomaly?.zScore ?? 0, isAnomaly: anomaly?.isAnomaly ?? false };
+    });
+
     return {
         totalHotels,
         totalRooms,
         avgRoomsPerHotel: totalHotels ? (totalRooms / totalHotels).toFixed(1) : "0",
         regions,
-        yearlyTrends: Object.values(trendMap).sort((a, b) => a.year - b.year),
+        yearlyTrends: yearlyTrendsWithAnomalies,
         capacityVsDemand,
     };
 }

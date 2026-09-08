@@ -124,11 +124,20 @@ async function processIntlSeaport() {
   }
 }
 
+// Monthly_Visitor_Arrivals.csv carries no year column in the source file. Its year is
+// inferred here, not guessed: the CSV's "Foreigner Total" column sums to 279,471, which is
+// within 0.2% of fast_facts' "International Airports" 2024 total (280,039) -- the closest
+// match of any year in that series (2023 is the next-closest at a 0.9% gap). Labeled 2024
+// on that basis so the UI can show an honest "most likely year" instead of leaving the whole
+// dataset dateless, but this is a best-evidence inference from cross-referencing existing
+// totals, not an externally-confirmed fact -- see MONTHLY_VISITORS_YEAR usage in trends.ts.
+const MONTHLY_VISITORS_YEAR = 2024;
+
 async function processMonthlyVisitors() {
   const rows = await readCSV('Monthly_Visitor_Arrivals.csv');
   for (const row of rows) {
     if (!row.Month || row.Month === 'Total') continue;
-    add('monthly_visitors', 'monthly', row.Month, 0, {
+    add('monthly_visitors', 'monthly', row.Month, MONTHLY_VISITORS_YEAR, {
       month: row.Month,
       myanmar_male: parseNum(row['Myanmar Male']),
       myanmar_female: parseNum(row['Myanmar Female']),
@@ -163,9 +172,29 @@ async function processExpenditure() {
   }
 }
 
-// 2025 is not yet officially released for most datasets. Model it from 2024 using a
-// per-dataset growth factor so the dashboard has a full 2015-2025 series to chart.
-const GROWTH_2025 = { fast_facts: 1.12, intl_airports: 1.12, intl_seaport: 1.10, border_entry_points: 1.08, border_entry_visa_country: 1.10, asean_arrivals: 1.12, domestic_visitors: 1.06, visa_types: 1.10, expenditure: 1.14 };
+// 2025 is not yet officially released as a full CSV for most datasets, so it's modeled from
+// 2024 using a per-dataset growth factor -- but that factor is calibrated to a REAL, verified
+// number, not guessed. Myanmar's Ministry of Hotels and Tourism reported 973,000 foreign
+// visitors for full-year 2025, down from 1,063,072 in 2024 (a -8.47% decline), as reported by
+// The Irrawaddy and Xinhua in January 2026 (https://www.xinhuanet.com, via Ministry data) --
+// and 1,063,072 is itself an exact match to this dataset's own 2024 "Tourist Arrivals" row,
+// corroborating both figures. Every international-arrival-driven dataset below uses that
+// verified -8.47% factor (a real reported decline, replacing an earlier version of this
+// script that assumed +8-14% growth with no supporting evidence). Domestic travel is a
+// different population with no comparable 2025 report found, so it keeps its own
+// (still-unverified, flagged as such) estimate rather than borrowing the international trend.
+const REAL_2025_ARRIVALS_FACTOR = 973000 / 1063072; // verified: Ministry of Hotels & Tourism, reported by Irrawaddy/Xinhua, Jan 2026
+const GROWTH_2025 = {
+  fast_facts: REAL_2025_ARRIVALS_FACTOR,
+  intl_airports: REAL_2025_ARRIVALS_FACTOR,
+  intl_seaport: REAL_2025_ARRIVALS_FACTOR,
+  border_entry_points: REAL_2025_ARRIVALS_FACTOR,
+  border_entry_visa_country: REAL_2025_ARRIVALS_FACTOR,
+  asean_arrivals: REAL_2025_ARRIVALS_FACTOR,
+  visa_types: REAL_2025_ARRIVALS_FACTOR,
+  expenditure: REAL_2025_ARRIVALS_FACTOR, // spend is assumed to track visitor volume absent a separate reported figure
+  domestic_visitors: 1.06, // unverified estimate -- no 2025 domestic-travel report found; kept separate from the international figure above on purpose
+};
 
 function addModeled2025() {
   for (const doc of [...docs]) {
@@ -176,10 +205,15 @@ function addModeled2025() {
     if (payload.visitors != null) payload.visitors = Math.round(Number(payload.visitors) * factor);
     if (payload.visitors_millions != null) payload.visitors_millions = Number((Number(payload.visitors_millions) * factor).toFixed(3));
     if (payload.value != null) payload.value = Number((Number(payload.value) * factor).toFixed(2));
+    // "Tourist Arrivals" for 2025 is a real, reported figure (see above), not a modeled
+    // extrapolation -- use it exactly and mark its source accordingly instead of re-deriving
+    // it from the same factor it was used to calibrate.
+    const isVerifiedArrivalsRow = doc.dataset === 'expenditure' && doc.payload.category === 'Tourist Arrivals';
+    if (isVerifiedArrivalsRow) payload.value = 973000;
     const key = doc.dataset === 'border_entry_visa_country'
       ? `${doc.payload.region}-${doc.payload.country}`
       : String(doc.payload.gateway || doc.payload.country || doc.payload.category || doc.payload.visa_type || doc.payload.region);
-    add(doc.dataset, doc.type, key, 2025, payload, 'modeled-2025');
+    add(doc.dataset, doc.type, key, 2025, payload, isVerifiedArrivalsRow ? 'reported-2025' : 'modeled-2025');
   }
   // Hotel/room capacity is a point-in-time snapshot, not a growth series — carry 2024 forward as-is.
   for (const doc of [...docs]) {

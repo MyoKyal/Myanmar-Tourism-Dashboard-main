@@ -20,6 +20,7 @@ export default function HotelsPage() {
     const { data, loading, lastUpdated } = useLiveData(() => getHotelsData(filters), [filters]);
 
     const formatNumber = (num: number | string) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(Number(num) || 0);
+    const roomAnomalyYears = (data?.yearlyTrends || []).filter((r: any) => r.isAnomaly).map((r: any) => r.year);
     const latestCapacity = data?.capacityVsDemand?.length ? data.capacityVsDemand[data.capacityVsDemand.length - 1] : null;
     const earliestCapacity = data?.capacityVsDemand?.length ? data.capacityVsDemand[0] : null;
     const capacityTrendPct = latestCapacity && earliestCapacity && earliestCapacity.roomsPer1000Visitors > 0
@@ -99,6 +100,11 @@ export default function HotelsPage() {
                                 <div className="w-2 h-6 bg-amber-500 rounded-sm" />
                                 {t("Hotel Capacity Growth")}
                             </h3>
+                            <p className="text-xs text-slate-500 -mt-4 mb-4">
+                                {roomAnomalyYears.length
+                                    ? `${t("Statistical outliers in total room supply (z-score >= 1.5):")} ${roomAnomalyYears.join(', ')}`
+                                    : t("No statistical outliers detected in room supply.")}
+                            </p>
                             <div className="flex-1 w-full h-full min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={data?.yearlyTrends || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>

@@ -42,6 +42,36 @@ export function correlationStrength(r: number): { label: string; labelMm: string
     };
 }
 
+/** Trailing-window linear regression forecast for the next x-value, shared by the Time
+ *  Trends (arrivals) and Expenditure (revenue) forecasts so both use identical math -- a
+ *  precondition for meaningfully comparing them (see forecastConsistencyNote in
+ *  expenditure.ts). Windowed rather than fit over the full history for the same reason in
+ *  both callers: a regression spanning the 2020-2022 pandemic crash gets dominated by it and
+ *  produces a nonsensical trend, so only the trailing `windowSize` points (or fewer, if the
+ *  series is shorter) are used. Returns null when there are fewer than 2 usable points. */
+export function trailingLinearForecast(
+    points: { x: number; y: number }[],
+    windowSize = 5
+): { nextX: number; projected: number; growthRateUsed: number; windowYears: number } | null {
+    const window = points.slice(-windowSize);
+    const n = window.length;
+    if (n < 2) return null;
+    const xMean = window.reduce((sum, p) => sum + p.x, 0) / n;
+    const yMean = window.reduce((sum, p) => sum + p.y, 0) / n;
+    let num = 0, den = 0;
+    for (const p of window) {
+        num += (p.x - xMean) * (p.y - yMean);
+        den += (p.x - xMean) ** 2;
+    }
+    const slope = den !== 0 ? num / den : 0;
+    const intercept = yMean - slope * xMean;
+    const nextX = window[n - 1].x + 1;
+    const projected = Math.max(0, slope * nextX + intercept);
+    const lastActual = window[n - 1].y;
+    const growthRateUsed = lastActual > 0 ? ((projected - lastActual) / lastActual) * 100 : 0;
+    return { nextX, projected, growthRateUsed: Number(growthRateUsed.toFixed(1)), windowYears: n };
+}
+
 export type AnomalyPoint<T> = T & { zScore: number; isAnomaly: boolean };
 
 /** Flags points in a numeric series whose z-score (standard deviations from the series'

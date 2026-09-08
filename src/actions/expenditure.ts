@@ -2,6 +2,9 @@
 
 import { getAnalyticsRows } from "@/lib/documentStore";
 import { GlobalFiltersState } from "@/lib/FilterContext";
+import { trailingLinearForecast, detectAnomalies } from "@/lib/statistics";
+
+const GATEWAYS = ["International Airports", "Cruise (By Sea)", "Land Borders Total"];
 
 function yearQuery(filters: GlobalFiltersState) {
     return filters.year !== "All"
@@ -10,7 +13,7 @@ function yearQuery(filters: GlobalFiltersState) {
 }
 
 export async function getExpenditureData(filters: GlobalFiltersState) {
-    const [rows, allRows, gdpRows, receiptsRows] = await Promise.all([
+    const [rows, allRows, gdpRows, receiptsRows, arrivalsRows] = await Promise.all([
         getAnalyticsRows("expenditure", yearQuery(filters)),
         // GDP contribution and the revenue forecast are always computed over the full
         // expenditure history, independent of the page's Year filter -- both are only
@@ -22,6 +25,9 @@ export async function getExpenditureData(filters: GlobalFiltersState) {
         getAnalyticsRows("expenditure"),
         getAnalyticsRows("worldbank_gdp"),
         getAnalyticsRows("worldbank_tourism_receipts"),
+        // Fetched only for the forecast cross-check below (see forecastConsistencyNote) --
+        // arrivals themselves are already charted on the Time Trends page.
+        getAnalyticsRows("fast_facts"),
     ]);
 
     // Pivot category rows into one row per year (Recharts wants year -> {category: value}).
@@ -31,13 +37,13 @@ export async function getExpenditureData(filters: GlobalFiltersState) {
         pivot[year] ??= { year };
         pivot[year][String(row.category)] = Number(row.value || 0);
     });
-    const yearlyTrends = Object.values(pivot).sort((a, b) => a.year - b.year);
+    const yearlyTrendsRaw = Object.values(pivot).sort((a, b) => a.year - b.year);
 
-    const totalExpenditure = yearlyTrends.reduce((total, row) => total + Number(row["Total Expenditure (US$)"] || 0), 0);
-    const totalArrivals = yearlyTrends.reduce((total, row) => total + Number(row["Tourist Arrivals"] || 0), 0);
+    const totalExpenditure = yearlyTrendsRaw.reduce((total, row) => total + Number(row["Total Expenditure (US$)"] || 0), 0);
+    const totalArrivals = yearlyTrendsRaw.reduce((total, row) => total + Number(row["Tourist Arrivals"] || 0), 0);
 
     const average = (key: string) =>
-        yearlyTrends.length ? yearlyTrends.reduce((total, row) => total + Number(row[key] || 0), 0) / yearlyTrends.length : 0;
+        yearlyTrendsRaw.length ? yearlyTrendsRaw.reduce((total, row) => total + Number(row[key] || 0), 0) / yearlyTrendsRaw.length : 0;
 
     // Tourism's share of GDP: our own "Total Expenditure (US$)" figure (in millions) against
     // real, independently-published GDP figures from the World Bank (in raw US$). Only years
@@ -79,35 +85,57 @@ export async function getExpenditureData(filters: GlobalFiltersState) {
         });
     const latestGdpImpact = gdpImpact.length ? gdpImpact[gdpImpact.length - 1] : null;
 
+    // Expenditure anomalies -- the same z-score outlier test already applied to international
+    // arrivals (Time Trends) and hotel room supply (Hotels page), reused here rather than
+    // left as a one-off. Always computed over the full 2015-2025 history (expenditureByYear,
+    // already fetched above) regardless of the page's Year filter, for the same reason as
+    // those other two: too few points in a narrowed window to establish a real baseline.
+    const expenditureAnomalyByYear = new Map(
+        detectAnomalies(Object.entries(expenditureByYear).map(([year, value]) => ({ year: Number(year), value }))).map((row) => [row.year, row])
+    );
+    const yearlyTrends = yearlyTrendsRaw.map((row) => {
+        const anomaly = expenditureAnomalyByYear.get(row.year);
+        return { ...row, expenditureZScore: anomaly?.zScore ?? 0, isExpenditureAnomaly: anomaly?.isAnomaly ?? false };
+    });
+
     // Next-year revenue forecast, via the same trailing-window linear regression used for
     // the arrivals forecast on the Time Trends page (see getTrendsData in trends.ts) --
     // same reasoning applies: a regression over the full 2015-2025 history gets dominated
     // by the 2020-2022 pandemic crash, so this uses a trailing window (last 5 years, or
     // fewer if shorter) to reflect the current trajectory. Kept as a plain, explainable OLS
     // line rather than a fancier model for the same transparency reason documented there.
-    let revenueForecast: { year: number; projectedUsdM: number; growthRateUsed: number; windowYears: number } | null = null;
-    const revenueWindow = allYearlyTrends
-        .filter((row) => Number(row["Total Expenditure (US$)"] || 0) > 0)
-        .slice(-5);
-    if (revenueWindow.length >= 2) {
-        const n = revenueWindow.length;
-        const xMean = revenueWindow.reduce((sum, row) => sum + row.year, 0) / n;
-        const yMean = revenueWindow.reduce((sum, row) => sum + Number(row["Total Expenditure (US$)"] || 0), 0) / n;
-        let num = 0, den = 0;
-        for (const row of revenueWindow) {
-            const y = Number(row["Total Expenditure (US$)"] || 0);
-            num += (row.year - xMean) * (y - yMean);
-            den += (row.year - xMean) ** 2;
+    const revenueWindow = allYearlyTrends.filter((row) => Number(row["Total Expenditure (US$)"] || 0) > 0);
+    const revenueRaw = trailingLinearForecast(revenueWindow.map((row) => ({ x: row.year, y: Number(row["Total Expenditure (US$)"] || 0) })));
+    const revenueForecast = revenueRaw
+        ? { year: revenueRaw.nextX, projectedUsdM: Number(revenueRaw.projected.toFixed(1)), growthRateUsed: revenueRaw.growthRateUsed, windowYears: revenueRaw.windowYears }
+        : null;
+
+    // Cross-check: revenue and arrivals are forecast independently (different source series,
+    // different windows of available data), so nothing previously stopped them from silently
+    // pointing in opposite directions -- e.g. revenue projected to grow while the arrivals
+    // driving that revenue are projected to shrink. That combination is possible in reality
+    // (higher spend per visitor), but it's unusual enough that a reader should be told when
+    // it happens rather than seeing two confidently-drawn lines that quietly disagree.
+    const arrivalsByYear: Record<number, number> = {};
+    arrivalsRows.filter((row) => GATEWAYS.includes(String(row.gateway))).forEach((row) => {
+        const year = Number(row.year);
+        arrivalsByYear[year] = (arrivalsByYear[year] || 0) + Number(row.visitors || 0);
+    });
+    const arrivalsForecast = trailingLinearForecast(Object.entries(arrivalsByYear).map(([year, visitors]) => ({ x: Number(year), y: visitors })));
+    let forecastConsistencyNote: string | null = null;
+    let forecastConsistencyNoteMm: string | null = null;
+    if (revenueForecast && arrivalsForecast) {
+        const revenueUp = revenueForecast.growthRateUsed > 2;
+        const revenueDown = revenueForecast.growthRateUsed < -2;
+        const arrivalsUp = arrivalsForecast.growthRateUsed > 2;
+        const arrivalsDown = arrivalsForecast.growthRateUsed < -2;
+        if (revenueUp && arrivalsDown) {
+            forecastConsistencyNote = `Revenue is projected to grow (${revenueForecast.growthRateUsed}%) while arrivals are projected to fall (${arrivalsForecast.growthRateUsed}%) -- these are independent trailing-trend projections, not a single reconciled model, so treat the gap as a flag to investigate rather than a settled forecast.`;
+            forecastConsistencyNoteMm = `ဝင်ငွေသည် တိုးတက်ရန် ခန့်မှန်းထားသော်လည်း (${revenueForecast.growthRateUsed}%) လာရောက်မှုမှာ ကျဆင်းရန် ခန့်မှန်းထားသည် (${arrivalsForecast.growthRateUsed}%) -- ဤသည်တို့သည် သီးခြား trailing-trend ခန့်မှန်းချက်များဖြစ်ပြီး တစ်ခုတည်းသော ပြန်လည်ညှိနှိုင်းထားသော မော်ဒယ် မဟုတ်သောကြောင့် ဤကွာဟမှုကို စုံစမ်းစစ်ဆေးရန် အလံအဖြစ်သတ်မှတ်ပါ၊ အတည်ပြုပြီးသား ခန့်မှန်းချက်အဖြစ် မယူဆပါနှင့်။`;
+        } else if (revenueDown && arrivalsUp) {
+            forecastConsistencyNote = `Arrivals are projected to grow (${arrivalsForecast.growthRateUsed}%) while revenue is projected to fall (${revenueForecast.growthRateUsed}%) -- these are independent trailing-trend projections, not a single reconciled model, so treat the gap as a flag to investigate rather than a settled forecast.`;
+            forecastConsistencyNoteMm = `လာရောက်မှုသည် တိုးတက်ရန် ခန့်မှန်းထားသော်လည်း (${arrivalsForecast.growthRateUsed}%) ဝင်ငွေမှာ ကျဆင်းရန် ခန့်မှန်းထားသည် (${revenueForecast.growthRateUsed}%) -- ဤသည်တို့သည် သီးခြား trailing-trend ခန့်မှန်းချက်များဖြစ်ပြီး တစ်ခုတည်းသော ပြန်လည်ညှိနှိုင်းထားသော မော်ဒယ် မဟုတ်သောကြောင့် ဤကွာဟမှုကို စုံစမ်းစစ်ဆေးရန် အလံအဖြစ်သတ်မှတ်ပါ၊ အတည်ပြုပြီးသား ခန့်မှန်းချက်အဖြစ် မယူဆပါနှင့်။`;
         }
-        const slope = den !== 0 ? num / den : 0;
-        const intercept = yMean - slope * xMean;
-        const nextYear = revenueWindow[n - 1].year + 1;
-        const projectedUsdM = Math.max(0, Number((slope * nextYear + intercept).toFixed(1)));
-        const lastActual = Number(revenueWindow[n - 1]["Total Expenditure (US$)"] || 0);
-        const growthRateUsed = lastActual > 0
-            ? parseFloat((((projectedUsdM - lastActual) / lastActual) * 100).toFixed(1))
-            : 0;
-        revenueForecast = { year: nextYear, projectedUsdM, growthRateUsed, windowYears: n };
     }
 
     return {
@@ -119,5 +147,7 @@ export async function getExpenditureData(filters: GlobalFiltersState) {
         gdpImpact,
         latestGdpImpact,
         revenueForecast,
+        forecastConsistencyNote,
+        forecastConsistencyNoteMm,
     };
 }

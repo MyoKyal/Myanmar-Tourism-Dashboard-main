@@ -137,6 +137,7 @@ export default function TrendsPage() {
                                 <div className="w-2 h-6 bg-purple-500 rounded-sm" />
                                 {t("Monthly Seasonality")}
                             </h3>
+                            <p className="text-xs text-slate-500 -mt-4 mb-4">{t("Pattern from the most recent year with full monthly detail (~2024, inferred by matching totals against yearly records) -- not an average across years.")}</p>
                             <div className="flex-1 w-full h-full min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={data?.seasonality || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -166,7 +167,7 @@ export default function TrendsPage() {
                                 <div className="w-2 h-6 bg-teal-500 rounded-sm" />
                                 {t("Visitor Demographics by Month")}
                             </h3>
-                            <p className="text-xs text-slate-500 -mt-4 mb-4">{t("Myanmar citizens vs. foreign visitors passing through the gateway each month.")}</p>
+                            <p className="text-xs text-slate-500 -mt-4 mb-4">{t("Myanmar citizens vs. foreign visitors passing through the gateway each month (~2024, same single-year source as Monthly Seasonality above).")}</p>
                             <div className="flex-1 w-full h-full min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={data?.demographics || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>

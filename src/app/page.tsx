@@ -40,6 +40,19 @@ export default function OverviewDashboard() {
     return abs >= 0.7 ? { border: 'border-rose-800/50', text: 'text-rose-400', bg: 'bg-rose-900/30' } : { border: 'border-amber-800/50', text: 'text-amber-400', bg: 'bg-amber-900/30' };
   };
 
+  // Sample-size confidence, separate from the r-based color above: a strong-looking |r| on
+  // 6-7 overlapping years (the case whenever domestic or World Bank data is one side of the
+  // pair, since those datasets are shorter than the ~11-year international series) is much
+  // less trustworthy than the same |r| on 10-11 years, but both used to render with identical
+  // visual weight. This flags the thin ones explicitly instead of letting a reader assume
+  // every card is equally well-supported just because the color looks the same.
+  const correlationConfidence = (n: number) =>
+    n >= 10
+      ? { label: 'Well-supported', labelMm: 'ကောင်းစွာ အထောက်အထားရှိသော', dim: false }
+      : n >= 8
+        ? { label: 'Adequate evidence', labelMm: 'လုံလောက်သော အထောက်အထား', dim: false }
+        : { label: 'Limited evidence -- few overlapping years', labelMm: 'အထောက်အထား နည်းပါးသည် -- ထပ်နေသောနှစ် နည်းသည်', dim: true };
+
   const formatNumber = (num: number) => new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 }).format(num || 0);
 
   return (
@@ -196,14 +209,18 @@ export default function OverviewDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {(correlations || []).map((c: any) => {
                 const color = correlationColor(c.direction, c.r);
+                const confidence = correlationConfidence(c.n);
                 return (
-                  <div key={c.id} className={`rounded-lg border p-4 ${color.border} ${color.bg}`}>
+                  <div key={c.id} className={`rounded-lg border p-4 ${color.border} ${color.bg} ${confidence.dim ? 'opacity-70' : ''}`}>
                     <div className="flex items-start justify-between gap-3">
                       <p className="text-sm font-semibold text-slate-200">{text ? c.labelMm : c.label}</p>
                       <span className={`shrink-0 text-lg font-extrabold ${color.text}`}>{c.r != null ? `r=${c.r}` : t("N/A")}</span>
                     </div>
                     <p className={`text-xs font-bold uppercase tracking-widest mt-1 ${color.text}`}>{text ? c.strengthMm : c.strength}</p>
-                    <p className="text-[11px] text-slate-500 mt-1">{t("Based on")} {c.n} {t("years of overlapping data")}</p>
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${confidence.dim ? 'bg-amber-900/40 text-amber-400' : 'bg-slate-700/40 text-slate-400'}`}>{text ? confidence.labelMm : confidence.label}</span>
+                      <p className="text-[11px] text-slate-500">{t("Based on")} {c.n} {t("years of overlapping data")}</p>
+                    </div>
                   </div>
                 );
               })}

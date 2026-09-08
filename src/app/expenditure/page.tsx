@@ -11,7 +11,7 @@ import { usePreferences } from "@/components/AppPreferences";
 import { DollarSign, Coins, TrendingUp, HandCoins, Landmark, Target } from "lucide-react";
 import {
     Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    ComposedChart, Legend, Line, Bar, AreaChart
+    ComposedChart, Legend, Line, Bar, AreaChart, Cell
 } from 'recharts';
 
 export default function ExpenditurePage() {
@@ -20,6 +20,7 @@ export default function ExpenditurePage() {
     const { data, loading, lastUpdated } = useLiveData(() => getExpenditureData(filters), [filters]);
 
     const formatNumber = (num: number | string) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(Number(num) || 0);
+    const expenditureAnomalyYears = (data?.yearlyTrends || []).filter((r: any) => r.isExpenditureAnomaly).map((r: any) => r.year);
     const nightsLabel = (val: any) => language === 'my' ? `${val} ${t("Nights")}` : `${val} Nights`;
 
     return (
@@ -81,6 +82,13 @@ export default function ExpenditurePage() {
                         />
                     </div>
 
+                    {data?.forecastConsistencyNote && (
+                        <div className="rounded-xl border border-amber-800/50 bg-amber-950/30 p-4 flex items-start gap-3 text-sm text-amber-300">
+                            <Target className="w-5 h-5 shrink-0 mt-0.5" />
+                            <p>{language === 'my' ? data.forecastConsistencyNoteMm : data.forecastConsistencyNote}</p>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 gap-6 mt-4">
 
                         {/* Expenditure vs Visitors Composed Chart */}
@@ -89,6 +97,11 @@ export default function ExpenditurePage() {
                                 <div className="w-2 h-6 bg-emerald-500 rounded-sm" />
                                 {t("Expenditure vs Tourist Arrivals Growth")}
                             </h3>
+                            <p className="text-xs text-slate-500 -mt-4 mb-4">
+                                {expenditureAnomalyYears.length
+                                    ? `${t("Statistical outliers in total expenditure (z-score >= 1.5), highlighted in red:")} ${expenditureAnomalyYears.join(', ')}`
+                                    : t("No statistical outliers detected in this range.")}
+                            </p>
                             <div className="flex-1 w-full h-full min-h-0 relative">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <ComposedChart data={data?.yearlyTrends || []} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
@@ -105,7 +118,11 @@ export default function ExpenditurePage() {
                                             ]}
                                         />
                                         <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                                        <Bar yAxisId="left" dataKey="Total Expenditure (US$)" name={t("Expenditure in USD (Millions)")} fill="#10b981" radius={[4, 4, 0, 0]} barSize={40} />
+                                        <Bar yAxisId="left" dataKey="Total Expenditure (US$)" name={t("Expenditure in USD (Millions)")} fill="#10b981" radius={[4, 4, 0, 0]} barSize={40}>
+                                            {(data?.yearlyTrends || []).map((row: any) => (
+                                                <Cell key={row.year} fill={row.isExpenditureAnomaly ? '#f43f5e' : '#10b981'} />
+                                            ))}
+                                        </Bar>
                                         <Line yAxisId="right" type="monotone" dataKey="Tourist Arrivals" name={t("Tourist Arrivals")} stroke="#06b6d4" strokeWidth={3} dot={{ r: 4, fill: "#06b6d4", strokeWidth: 2, stroke: "#020617" }} />
                                     </ComposedChart>
                                 </ResponsiveContainer>

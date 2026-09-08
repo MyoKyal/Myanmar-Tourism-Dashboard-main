@@ -103,7 +103,7 @@ export default function InternationalPage() {
                             <div className="w-2 h-6 bg-rose-500 rounded-sm" />
                             {t("ASEAN Tourism Revenue Benchmark")}
                         </h3>
-                        <p className="text-sm text-slate-400 mt-1 mb-4 max-w-2xl">{t("International tourism receipts (World Bank), each country shown for its own most recently reported year since reporting timelines differ.")}</p>
+                        <p className="text-sm text-slate-400 mt-1 mb-4 max-w-2xl">{t("International tourism receipts (World Bank), each country shown for its own most recently reported year since reporting timelines differ. World Bank's tourism-receipts series stopped updating for Myanmar and most ASEAN neighbors after 2019-2020 -- confirmed directly against the World Bank API, not an ingestion gap on this app's side -- so these bars predate the post-pandemic recovery.")}</p>
                         <div className="w-full h-[420px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={revenueBenchmark || []} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
