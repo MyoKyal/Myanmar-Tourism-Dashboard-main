@@ -19,6 +19,7 @@ export const MY: Record<string, string> = {
   "Tourist": "ခရီးသွား", "Business": "စီးပွားရေး", "Others": "အခြား",
   "Open navigation": "လမ်းညွှန်ဇယား ဖွင့်ရန်",
   "Close navigation": "လမ်းညွှန်ဇယား ပိတ်ရန်",
+  "Sign out": "ထွက်ရန်",
   "Change language": "ဘာသာစကား ပြောင်းရန်",
   "Toggle theme": "အပြင်အဆင် ပြောင်းရန်",
   "Export CSV": "CSV ထုတ်ယူရန်",
@@ -267,6 +268,50 @@ export const MY: Record<string, string> = {
   "budget risk": "ဘတ်ဂျက်အန္တရာယ်",
   "confidence": "ယုံကြည်မှု",
   "Recommendation": "အကြံပြုချက်",
+
+  // AI Itinerary Generator
+  "AI Itinerary Generator": "AI ခရီးစဉ်အစီအစဉ် ထုတ်ပေးစနစ်",
+  "Turn a trip length and budget into a realistic day-by-day plan across Myanmar.": "ခရီးစဉ်ကြာချိန်နှင့် ဘတ်ဂျက်ကို မြန်မာနိုင်ငံတစ်ဝှမ်း လက်တွေ့ကျသော နေ့အလိုက် အစီအစဉ်အဖြစ် ပြောင်းလဲပေးပါ။",
+  "Plan your trip": "သင့်ခရီးစဉ်ကို စီစဉ်ပါ",
+  "The schedule below is deterministic (day counts and budget always add up); an AI-written suggestion is layered on top of each stop, best-effort only.": "အောက်ပါအစီအစဉ်သည် သေချာတိကျသည် (နေ့ရေတွက်မှုနှင့် ဘတ်ဂျက်သည် အမြဲညီမျှသည်); AI ရေးသားထားသော အကြံပြုချက်ကို နေရာတစ်ခုစီအပေါ် ထပ်လောင်းထည့်သွင်းထားသည်၊ အကောင်းဆုံးကြိုးစားမှုသာဖြစ်သည်။",
+  "Trip length (days)": "ခရီးစဉ်ကြာချိန် (ရက်)",
+  "1-30 days": "၁-၃၀ ရက်",
+  "Budget per day (USD)": "တစ်နေ့လျှင် ဘတ်ဂျက် (USD)",
+  "Interests (optional)": "စိတ်ဝင်စားမှုများ (ရွေးချယ်ခွင့်)",
+  "Culture & History": "ယဉ်ကျေးမှုနှင့် သမိုင်း",
+  "Nature & Lakes": "သဘာဝနှင့် ကန်များ",
+  "Beach & Coast": "ကမ်းခြေနှင့် ကမ်းရိုးတန်း",
+  "Cities & Business": "မြို့ကြီးများနှင့် စီးပွားရေး",
+  "Adventure & Remote": "စွန့်စားခန်းနှင့် ဝေးလံသောဒေသ",
+  "Generate itinerary": "ခရီးစဉ်အစီအစဉ် ထုတ်ပေးရန်",
+  "Set your trip length and budget above and click Generate to see a day-by-day plan here.": "အထက်တွင် ခရီးစဉ်ကြာချိန်နှင့် ဘတ်ဂျက်ကို သတ်မှတ်ပြီး နေ့အလိုက်အစီအစဉ်ကို ဤနေရာတွင် ကြည့်ရှုရန် Generate ကို နှိပ်ပါ။",
+  "Estimated total cost": "ခန့်မှန်းစုစုပေါင်း စရိတ်",
+  "Budget": "ဘတ်ဂျက်",
+  "days": "ရက်",
+  "day": "ရက်",
+  "Over budget": "ဘတ်ဂျက်ကျော်လွန်",
+  "Day": "နေ့",
+  "Est. cost": "ခန့်မှန်းစရိတ်",
+  "Daily rate": "နေ့စဉ်နှုန်း",
+  "Best months": "အကောင်းဆုံးလများ",
+  "Varies": "အမျိုးမျိုးကွဲပြား",
+  "AI Suggestion": "AI အကြံပြုချက်",
+
+  // Crowd Monitoring
+  "Which destinations are under more visitor pressure relative to their own accommodation capacity.": "မည်သည့်ခရီးစဉ်ဇုန်များသည်၎င်းတို့၏ တည်းခိုခန်းစွမ်းရည်နှင့်နှိုင်းယှဉ်လျှင် ပိုမိုဧည့်သည်ဖိအားများနေသည်ကို ပြသသည်။",
+  "This app has no live visitor-counting or ticketing feed, so \"crowd level\" here is an accommodation-pressure proxy -- real hotel-room supply against real domestic-visitor volume, benchmarked against the national median of that same ratio (median, not average, so one outlier region can't skew every other destination's rating) -- not a live headcount. Destinations sharing a region (e.g. Bagan and Mandalay) share one signal, since visitor and hotel data isn't tracked at city level.": "ဤအက်ပလီကေးရှင်းတွင် တိုက်ရိုက်ဧည့်သည်ရေတွက်ခြင်း သို့မဟုတ် လက်မှတ်ရောင်းချမှုဒေတာ မရှိသောကြောင့်၊ ဤနေရာရှိ \"လူစုလူပေါင်းအဆင့်\" သည် တည်းခိုခန်းဖိအား ကိုယ်စားပြုတန်ဖိုးတစ်ခုသာဖြစ်သည် -- အမှန်တကယ် ဟိုတယ်အခန်းထောက်ပံ့မှုကို အမှန်တကယ် ပြည်တွင်းဧည့်သည်ပမာဏနှင့် နှိုင်းယှဉ်ပြီး၊ ထိုအချိုးတူ၏ တစ်နိုင်ငံလုံး အလယ်တန်းတန်ဖိုးနှင့် နှိုင်းယှဉ်ထားသည် (ဒေသတစ်ခုတည်း၏ ထူးခြားချက်က အခြားခရီးစဉ်ဇုန်များအားလုံးကို မထိခိုက်စေရန် ပျမ်းမျှမဟုတ်ဘဲ အလယ်တန်းတန်ဖိုးကို အသုံးပြုသည်) -- တိုက်ရိုက်ဦးရေရေတွက်ခြင်း မဟုတ်ပါ။ ဒေသတစ်ခုတည်းတွင်ရှိသော ခရီးစဉ်ဇုန်များ (ဥပမာ ပုဂံနှင့် မန္တလေး) သည် ဧည့်သည်နှင့်ဟိုတယ်ဒေတာကို မြို့အဆင့်တွင် မခြေရာခံထားသောကြောင့် အချက်ပြချက်တစ်ခုတည်းကို မျှဝေအသုံးပြုကြသည်။",
+  "National median": "တစ်နိုင်ငံလုံး အလယ်တန်းတန်ဖိုး",
+  "rooms per 1,000 domestic visitors": "ပြည်တွင်းဧည့်သည် ၁,၀၀၀ လျှင် အခန်းရေ",
+  "data": "ဒေတာ",
+  "Rooms/1000 visitors": "အခန်း/ဧည့်သည် ၁၀၀၀",
+  "Domestic visitors": "ပြည်တွင်းဧည့်သည်များ",
+
+  // Alert Center
+  "Alert Center": "သတိပေးချက် စင်တာ",
+  "Every statistical anomaly and overcrowding signal already computed elsewhere in this app, in one place.": "ဤအက်ပလီကေးရှင်းရှိ အခြားနေရာများတွင် တွက်ချက်ထားပြီးသား စာရင်းအင်းအရ ထူးခြားချက်များနှင့် လူပိုလျှံနေမှု အချက်ပြချက်အားလုံးကို တစ်နေရာတည်းတွင်။",
+  "No active alerts.": "လက်ရှိသတိပေးချက် မရှိပါ။",
+  "Nothing currently flagged as a statistical outlier or overcrowding signal.": "လောလောဆယ် စာရင်းအင်းအရ ထူးခြားချက် သို့မဟုတ် လူပိုလျှံနေမှု အချက်ပြချက်အဖြစ် အမှတ်အသားပြုထားခြင်း မရှိပါ။",
+  "View": "ကြည့်ရှုရန်",
 };
 
 export function translate(text: string, language: "en" | "my"): string {

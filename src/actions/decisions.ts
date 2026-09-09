@@ -1,6 +1,6 @@
 "use server";
 
-import { getDestinationProfile, getTourismCollection, destinationProfiles, type DestinationProfile } from '@/lib/documentStore';
+import { getDestinationProfile, getAllDestinations, getTourismCollection, type DestinationProfile } from '@/lib/documentStore';
 import { GlobalFiltersState } from '@/lib/FilterContext';
 import { generateAiInsight } from '@/lib/ollama';
 import { getClusterForDestination } from '@/lib/destinationClusters';
@@ -96,11 +96,12 @@ export async function makeTravelDecision(input: DecisionInput) {
   const dailyPerPerson = budget / days;
   const destinationMap: Record<string, string> = { yangon: 'Yangon', mandalay: 'Mandalay', bagan: 'Bagan', inle: 'Inle Lake', shan: 'Shan State', mon: 'Mon State', rakhine: 'Rakhine State', chin: 'Chin State', kayin: 'Kayin State', kachin: 'Kachin State', sagaing: 'Sagaing Region', tanintharyi: 'Tanintharyi Region', ayeyarwady: 'Ayeyarwady Region', naypyidaw: 'Naypyidaw', beach: 'Ngapali Beach' };
 
-  // Score every destination in the catalog (documentStore.ts's destinationProfiles) against
-  // this trip's actual budget, purpose, and (if given) travel month -- replaces the old
-  // fixed 2-3-bucket threshold that only ever looked at raw budget size for "any region",
-  // and never scored an explicitly-picked region against the trip at all.
-  const ranked = destinationProfiles
+  // Score every active destination (from the `destinations` Mongo collection, not a static
+  // array -- see documentStore.ts) against this trip's actual budget, purpose, and (if given)
+  // travel month. Reading live from the database, rather than an in-memory catalog, is what
+  // makes an admin's edit in manage-destinations actually change what gets recommended.
+  const allDestinations = await getAllDestinations();
+  const ranked = allDestinations
     .map((profile) => ({ profile, score: scoreDestination(profile, input, dailyPerPerson) }))
     .sort((a, b) => b.score - a.score);
 
@@ -118,12 +119,12 @@ export async function makeTravelDecision(input: DecisionInput) {
     rank = index >= 0 ? index + 1 : ranked.length;
   }
 
-  const profile = await getDestinationProfile(destination, input.nationality);
+  const profile = await getDestinationProfile(destination);
   const recommendedDailyCost = profile?.dailyCost || 123;
-  // Data-driven destination type (k-means clustering over cost + safety across all 18
+  // Data-driven destination type (k-means clustering over cost + safety across all active
   // destinations, see destinationClusters.ts) -- an independent, algorithmic categorization
   // shown alongside the scoring-based recommendation above, not a factor in its ranking.
-  const destinationCluster = getClusterForDestination(destination);
+  const destinationCluster = await getClusterForDestination(destination);
   const isAsean = ['Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'Brunei', 'Cambodia', 'Laos'].some((country) => input.nationality.toLowerCase().includes(country.toLowerCase()));
   const visaNote = profile?.visaRule || (isAsean ? 'ASEAN passport: check the current visa exemption/arrival rules before booking.' : 'Non-ASEAN passport: budget time and fees for an eVisa or embassy process.');
   const visaNoteMm = profile?.visaRule || (isAsean ? 'အာဆီယံနိုင်ငံကူးလက်မှတ်: မှာယူမီ လက်ရှိဗီဇာကင်းလွတ်ခွင့်/ရောက်ရှိချက်စည်းမျဉ်းများကို စစ်ဆေးပါ။' : 'အာဆီယံမဟုတ်သော နိုင်ငံကူးလက်မှတ်: eVisa သို့မဟုတ် သံရုံးလုပ်ငန်းစဉ်အတွက် အချိန်နှင့်စရိတ်ကို ကြိုတင်စီစဉ်ထားပါ။');

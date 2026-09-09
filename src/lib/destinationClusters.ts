@@ -1,11 +1,12 @@
-// Destination clustering for the Decision Center: groups the 18 destinations in
-// destinationProfiles into data-driven segments using k-means (see kMeans2D in
-// statistics.ts) over two normalized features -- daily cost and safety score -- rather
-// than a hand-authored bucket list. Computed once per request (18 points is trivial) and
-// cached for the life of the module, since destinationProfiles itself only changes when
-// the app is redeployed.
+// Destination clustering for the Decision Center: groups active destinations into
+// data-driven segments using k-means (see kMeans2D in statistics.ts) over two normalized
+// features -- daily cost and safety score -- rather than a hand-authored bucket list.
+// Recomputed on every call rather than cached at module scope: destinations are a real
+// admin-editable entity now (see actions/manageDestinations.ts), so a cached-forever cluster
+// set would keep showing a destination's old cost/safety category after an edit until the
+// server next restarted. 18-ish points is cheap enough that recomputing costs nothing real.
 
-import { destinationProfiles, type DestinationProfile } from "@/lib/documentStore";
+import { getAllDestinations, type DestinationProfile } from "@/lib/documentStore";
 import { kMeans2D } from "@/lib/statistics";
 
 export type DestinationCluster = {
@@ -15,8 +16,6 @@ export type DestinationCluster = {
     labelMm: string;
 };
 
-let cached: DestinationCluster[] | null = null;
-
 function normalize(values: number[]): number[] {
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -24,10 +23,10 @@ function normalize(values: number[]): number[] {
     return values.map((v) => (v - min) / (max - min));
 }
 
-export function getDestinationClusters(): DestinationCluster[] {
-    if (cached) return cached;
+export async function getDestinationClusters(): Promise<DestinationCluster[]> {
+    const profiles: DestinationProfile[] = await getAllDestinations();
+    if (profiles.length === 0) return [];
 
-    const profiles: DestinationProfile[] = destinationProfiles;
     const costs = normalize(profiles.map((p) => p.dailyCost));
     const safeties = normalize(profiles.map((p) => p.safetyScore));
     const points = profiles.map((_, i) => ({ x: costs[i], y: safeties[i] }));
@@ -63,13 +62,13 @@ export function getDestinationClusters(): DestinationCluster[] {
         return { label: 'Budget & Practical', labelMm: 'ချွေတာသော နှင့် လက်တွေ့ကျသော' };
     };
 
-    cached = profiles.map((p, i) => {
+    return profiles.map((p, i) => {
         const { label, labelMm } = labelFor(assignments[i]);
         return { destination: p.destination, cluster: assignments[i], label, labelMm };
     });
-    return cached;
 }
 
-export function getClusterForDestination(destination: string): DestinationCluster | null {
-    return getDestinationClusters().find((c) => c.destination === destination) || null;
+export async function getClusterForDestination(destination: string): Promise<DestinationCluster | null> {
+    const clusters = await getDestinationClusters();
+    return clusters.find((c) => c.destination === destination) || null;
 }

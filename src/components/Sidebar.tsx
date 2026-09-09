@@ -11,10 +11,13 @@ import {
     Hotel,
     Banknote,
     MapPin
-    , Sun, Moon, Languages, Lightbulb, X
+    , Sun, Moon, Languages, Lightbulb, X, Briefcase, LogOut, Settings2, Route, Gauge, Bell, Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePreferences } from "@/components/AppPreferences";
+import { useSession } from "@/components/SessionProvider";
+import { logoutAction } from "@/actions/auth";
+import { canAccessPath, type Role } from "@/lib/auth";
 
 // Grouped instead of one flat list of 10 -- easier to scan, and each group name gives a
 // quick sense of what lives inside it before the user even reads the individual items.
@@ -47,6 +50,17 @@ const navGroups = [
             { name: "Expenditure", href: "/expenditure", icon: Banknote },
             { name: "Hotels & Accommodation", href: "/hotels", icon: Hotel },
             { name: "Decision Center", href: "/decisions", icon: Lightbulb },
+            { name: "AI Itinerary", href: "/itinerary", icon: Route },
+            { name: "Crowd Monitoring", href: "/crowd", icon: Gauge },
+            { name: "Business Dashboard", href: "/business", icon: Briefcase },
+        ],
+    },
+    {
+        label: "Management", labelMm: "စီမံခန့်ခွဲမှု",
+        items: [
+            { name: "Alert Center", href: "/alerts", icon: Bell },
+            { name: "Manage Destinations", href: "/manage-destinations", icon: Settings2 },
+            { name: "Manage Users", href: "/manage-users", icon: Users },
         ],
     },
 ];
@@ -54,12 +68,29 @@ const navGroups = [
 const myanmarLabels: Record<string, string> = {
     Overview: 'အနှစ်ချုပ်', 'International Tourism': 'နိုင်ငံတကာ ခရီးသွား', 'Time Trends': 'အချိန်လိုက် လမ်းကြောင်း',
     'Visa Analysis': 'ဗီဇာ ခွဲခြမ်းစိတ်ဖြာမှု', 'Entry Points': 'ဝင်ပေါက်များ', 'Hotels & Accommodation': 'ဟိုတယ်နှင့် တည်းခိုခန်း',
-    Expenditure: 'အသုံးစရိတ်', 'Domestic Tourism': 'ပြည်တွင်း ခရီးသွား', 'Destinations Map': 'ခရီးစဉ်များ မြေပုံ', 'Decision Center': 'ဆုံးဖြတ်ချက် စင်တာ'
+    Expenditure: 'အသုံးစရိတ်', 'Domestic Tourism': 'ပြည်တွင်း ခရီးသွား', 'Destinations Map': 'ခရီးစဉ်များ မြေပုံ', 'Decision Center': 'ဆုံးဖြတ်ချက် စင်တာ',
+    'Business Dashboard': 'စီးပွားရေး ဒက်ရှ်ဘုတ်', 'Manage Destinations': 'ခရီးစဉ်ဇုန်များ စီမံခန့်ခွဲရန်', 'AI Itinerary': 'AI ခရီးစဉ်အစီအစဉ်',
+    'Crowd Monitoring': 'လူစုလူပေါင်း စောင့်ကြည့်ခြင်း', 'Alert Center': 'သတိပေးချက် စင်တာ',
+    'Manage Users': 'အသုံးပြုသူများ စီမံခန့်ခွဲရန်',
+};
+
+const ROLE_LABEL: Record<Role, { en: string; mm: string }> = {
+    SUPER_ADMIN: { en: 'Super Admin', mm: 'အထွေထွေ စီမံခန့်ခွဲသူ' },
+    DESTINATION_MANAGER: { en: 'Destination Manager', mm: 'ခရီးစဉ်ဇုန် မန်နေဂျာ' },
+    BUSINESS_USER: { en: 'Business User', mm: 'စီးပွားရေး အသုံးပြုသူ' },
+    TOURIST: { en: 'Tourist', mm: 'ခရီးသွား' },
 };
 
 export default function Sidebar() {
     const pathname = usePathname();
     const { language, setLanguage, theme, toggleTheme, mobileNavOpen, setMobileNavOpen, t } = usePreferences();
+    const user = useSession();
+    // Page-level RBAC mirrors middleware.ts exactly (same canAccessPath call) so the sidebar
+    // never advertises a link the middleware would then bounce the user back out of --
+    // showing a link a click immediately undoes is worse than not showing it.
+    const visibleGroups = navGroups
+        .map((group) => ({ ...group, items: group.items.filter((item) => canAccessPath(user.role, item.href)) }))
+        .filter((group) => group.items.length > 0);
 
     return (
         <>
@@ -97,7 +128,7 @@ export default function Sidebar() {
                         {language === 'my' ? 'ခွဲခြမ်းစိတ်ဖြာမှု ဒက်ရှ်ဘုတ်' : 'Analytics Dashboard'}
                     </div>
 
-                    {navGroups.map((group, groupIndex) => (
+                    {visibleGroups.map((group, groupIndex) => (
                         <div key={group.label} className={cn(groupIndex > 0 && "mt-5")}>
                             <div className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1.5 px-3">
                                 {language === 'my' ? group.labelMm : group.label}
@@ -129,6 +160,20 @@ export default function Sidebar() {
                 </nav>
 
                 <div className="p-4 border-t border-white/10 text-xs text-slate-500 space-y-3">
+                    <div className="flex items-center gap-2.5 px-1">
+                        <div className="w-8 h-8 rounded-full bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-sm shrink-0">
+                            {user.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <div className="text-slate-200 font-semibold truncate">{user.fullName}</div>
+                            <div className="text-[11px] text-slate-500 truncate">{language === 'my' ? ROLE_LABEL[user.role].mm : ROLE_LABEL[user.role].en}</div>
+                        </div>
+                        <form action={logoutAction}>
+                            <button type="submit" className="p-1.5 rounded-md text-slate-500 hover:bg-white/10 hover:text-rose-400 transition-colors" title={t("Sign out")}>
+                                <LogOut className="w-4 h-4" />
+                            </button>
+                        </form>
+                    </div>
                     <div className="flex gap-2">
                         <button onClick={() => setLanguage(language === 'en' ? 'my' : 'en')} className="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-300/50 px-2 py-1.5 hover:bg-slate-100/70" title={t("Change language")}><Languages className="w-3.5 h-3.5" /> {language === 'en' ? 'မြန်မာ' : 'English'}</button>
                         <button onClick={toggleTheme} className="rounded-md border border-slate-300/50 px-2 py-1.5 hover:bg-slate-100/70" title={t("Toggle theme")}>{theme === 'light' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}</button>

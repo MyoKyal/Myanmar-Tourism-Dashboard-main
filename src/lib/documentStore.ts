@@ -1,4 +1,6 @@
-import { MongoClient, type Db } from 'mongodb';
+import { MongoClient, ObjectId, type Db } from 'mongodb';
+import { hashPassword } from './password';
+import type { Role } from './auth';
 
 export type TourismDocument = {
   _id: string;
@@ -7,6 +9,22 @@ export type TourismDocument = {
   year: number;
   payload: Record<string, unknown>;
   source: 'official-csv' | 'modeled-2025' | 'reported-2025' | 'world-bank-api';
+};
+
+export type UserRecord = {
+  _id: string;
+  email: string;
+  passwordHash: string;
+  fullName: string;
+  role: Role;
+  /** Enforced in actions/manageDestinations.ts's saveDestinationAction -- a Destination
+   *  Manager may only edit the destination named here, checked against the session's JWT on
+   *  every save, not just at page-render time. Page-level access alone (allowedPaths() in
+   *  lib/auth.ts) only gates which pages a role can open, not which row within one. */
+  assignedDestination?: string;
+  businessName?: string;
+  status: 'ACTIVE' | 'SUSPENDED';
+  createdAt: Date;
 };
 
 export type DestinationProfile = {
@@ -20,6 +38,13 @@ export type DestinationProfile = {
   shoulderMonths: string[];
   visaRule: string;
   visaRuleMm: string;
+  /** Real management fields, not present on the seed data below (seeded destinations
+   *  default to ACTIVE / undefined on first write). INACTIVE destinations are excluded from
+   *  Decision Center scoring and clustering, but stay editable so a Destination Manager or
+   *  Super Admin can reactivate one without re-creating it. */
+  status: 'ACTIVE' | 'INACTIVE';
+  updatedAt?: Date;
+  updatedBy?: string;
 };
 
 let clientPromise: Promise<MongoClient> | null = null;
@@ -51,7 +76,14 @@ function collectionName(name: string) {
   return `${collectionPrefix()}${name}`;
 }
 
-export const destinationProfiles: DestinationProfile[] = [
+// Seed data only -- not exported. Every reader (Decision Center scoring, clustering, the
+// Destinations map, and the manage-destinations admin UI) goes through the `destinations`
+// Mongo collection instead, via getAllDestinations()/getDestinationProfile() below. That
+// collection is what admin edits actually change; this array only ever supplies the initial
+// values and is never read again after seedMongo() runs once at startup. Keeping it
+// unexported makes "importing this by mistake and getting stale data" a compile error
+// instead of a bug someone has to notice at runtime.
+const SEED_DESTINATION_PROFILES: Omit<DestinationProfile, 'status'>[] = [
   { destination: 'Yangon', country: 'Myanmar', dailyCost: 115, safetyScore: 70, safetyNotes: 'Urban destination; use registered taxis and monitor local advisories.', safetyNotesMm: 'မြို့ပြဒေသ; မှတ်ပုံတင်ထားသော တက္ကစီများကို အသုံးပြုပြီး ဒေသန္တရအကြံပြုချက်များကို စောင့်ကြည့်ပါ။', peakMonths: ['October', 'November', 'December', 'January', 'February', 'March'], shoulderMonths: ['April', 'September'], visaRule: 'Most foreign passports should check eVisa or embassy requirements before travel.', visaRuleMm: 'နိုင်ငံခြားနိုင်ငံကူးလက်မှတ်အများစုသည် ခရီးမထွက်မီ eVisa သို့မဟုတ် သံရုံးလိုအပ်ချက်များကို စစ်ဆေးသင့်သည်။' },
   { destination: 'Mandalay', country: 'Myanmar', dailyCost: 104, safetyScore: 66, safetyNotes: 'Cultural city; plan transport between dispersed heritage sites.', safetyNotesMm: 'ယဉ်ကျေးမှုမြို့တော်; ပြန့်ကျဲနေသော အမွေအနှစ်နေရာများကြား သွားလာရေးကို ကြိုတင်စီစဉ်ပါ။', peakMonths: ['December', 'January', 'February'], shoulderMonths: ['November', 'March'], visaRule: 'Check eVisa eligibility and approved entry points for your passport.', visaRuleMm: 'eVisa အရည်အချင်းနှင့် သင့်နိုင်ငံကူးလက်မှတ်အတွက် ခွင့်ပြုထားသော ဝင်ပေါက်များကို စစ်ဆေးပါ။' },
   { destination: 'Bagan', country: 'Myanmar', dailyCost: 132, safetyScore: 68, safetyNotes: 'Hot, open archaeological area; use licensed guides and carry water.', safetyNotesMm: 'ပူနွေးသော ပွင့်လင်းရှေးဟောင်းဒေသ; လိုင်စင်ရ လမ်းညွှန်များကို အသုံးပြုပြီး ရေသယ်ဆောင်ပါ။', peakMonths: ['December', 'January', 'February'], shoulderMonths: ['November', 'March'], visaRule: 'Tourist visa/eVisa rules vary by nationality; verify before booking.', visaRuleMm: 'ခရီးသွားဗီဇာ/eVisa စည်းမျဉ်းများသည် နိုင်ငံသားအလိုက် ကွဲပြားသည်; မှာယူမီ စစ်ဆေးပါ။' },
@@ -78,24 +110,118 @@ async function seedMongo() {
   await Promise.all([
     docs.createIndex({ dataset: 1, year: 1 }),
     docs.createIndex({ type: 1, year: 1 }),
-    db.collection(collectionName('destination_cost')).createIndex({ destination: 1 }),
-    db.collection(collectionName('destination_safety')).createIndex({ destination: 1 }),
-    db.collection(collectionName('destination_seasonality')).createIndex({ destination: 1 }),
-    db.collection(collectionName('destination_visa')).createIndex({ destination: 1, nationality: 1 }),
+    db.collection(collectionName('destinations')).createIndex({ destination: 1 }, { unique: true }),
   ]);
-  // Upserted on every startup rather than "insert once if empty" -- the old empty-check
-  // meant an edit to destinationProfiles's peak/shoulder months (or cost/safety/visa text)
-  // silently had no effect on already-seeded databases, since getDestinationProfile() reads
-  // from these collections, not the array directly. That let a real edit (differentiating
-  // seasonality per destination) pass every code review check while the app kept serving
-  // stale data. Upserting keeps these collections in sync with the source array by
-  // construction, so this class of drift can't happen again.
-  await Promise.all(destinationProfiles.flatMap((p) => [
-    db.collection(collectionName('destination_cost')).updateOne({ destination: p.destination }, { $set: { destination: p.destination, country: p.country, dailyCost: p.dailyCost, currency: 'USD', source: 'planning-baseline' } }, { upsert: true }),
-    db.collection(collectionName('destination_safety')).updateOne({ destination: p.destination }, { $set: { destination: p.destination, safetyScore: p.safetyScore, notes: p.safetyNotes, notesMm: p.safetyNotesMm, updatedAt: new Date(), source: 'planning-baseline' } }, { upsert: true }),
-    db.collection(collectionName('destination_seasonality')).updateOne({ destination: p.destination }, { $set: { destination: p.destination, peakMonths: p.peakMonths, shoulderMonths: p.shoulderMonths, source: 'planning-baseline' } }, { upsert: true }),
-    db.collection(collectionName('destination_visa')).updateOne({ destination: p.destination, nationality: '*' }, { $set: { destination: p.destination, nationality: '*', rule: p.visaRule, ruleMm: p.visaRuleMm, source: 'planning-baseline' } }, { upsert: true }),
-  ]));
+  // $setOnInsert, not $set -- this collection replaced the old 4-collection destination_cost
+  // / destination_safety / destination_seasonality / destination_visa split, which used $set
+  // on every startup specifically so a code-level edit (e.g. differentiating seasonality per
+  // destination) always reached the database. That reasoning no longer applies: destinations
+  // are now a real admin-editable entity (see actions/manageDestinations.ts), so forcibly
+  // overwriting on every restart would silently discard a Super Admin's or Destination
+  // Manager's real edit the next time the server restarts. This seed only ever supplies the
+  // starting values for a destination that doesn't exist in the database yet.
+  await Promise.all(SEED_DESTINATION_PROFILES.map((p) =>
+    db.collection(collectionName('destinations')).updateOne(
+      { destination: p.destination },
+      { $setOnInsert: { ...p, status: 'ACTIVE', updatedAt: new Date(), updatedBy: 'seed' } },
+      { upsert: true }
+    )
+  ));
+
+  await seedDemoUsers(db);
+}
+
+// One demo account per role, so the login screen and RBAC are actually testable without a
+// user-management UI (that's Phase 3 work -- "Manage users" in the admin dashboard). Unlike
+// the destinationProfiles upsert above, this uses $setOnInsert: a user is a mutable entity
+// (someone could change their name or password later), so re-running the seed must create a
+// missing demo account without ever reverting a real change to an existing one.
+async function seedDemoUsers(db: Db) {
+  const users = db.collection(collectionName('users'));
+  await users.createIndex({ email: 1 }, { unique: true });
+  const demoPasswordHash = await hashPassword('Demo@2025');
+  const demoAccounts: Omit<UserRecord, '_id'>[] = [
+    { email: 'admin@myanmar-tourism.gov.mm', passwordHash: demoPasswordHash, fullName: 'Aye Aye Win', role: 'SUPER_ADMIN', status: 'ACTIVE', createdAt: new Date() },
+    { email: 'bagan.manager@myanmar-tourism.gov.mm', passwordHash: demoPasswordHash, fullName: 'Kyaw Zin Latt', role: 'DESTINATION_MANAGER', assignedDestination: 'Bagan', status: 'ACTIVE', createdAt: new Date() },
+    { email: 'owner@ngapali-bay-resort.example', passwordHash: demoPasswordHash, fullName: 'Su Su Hlaing', role: 'BUSINESS_USER', businessName: 'Ngapali Bay Resort', status: 'ACTIVE', createdAt: new Date() },
+    { email: 'tourist@example.com', passwordHash: demoPasswordHash, fullName: 'Alex Traveler', role: 'TOURIST', status: 'ACTIVE', createdAt: new Date() },
+  ];
+  await Promise.all(demoAccounts.map((account) =>
+    users.updateOne({ email: account.email }, { $setOnInsert: account }, { upsert: true })
+  ));
+}
+
+export async function getUserByEmail(email: string): Promise<UserRecord | null> {
+  await ready();
+  const db = await getMongoDb();
+  const doc = await db.collection(collectionName('users')).findOne({ email: email.toLowerCase().trim() });
+  if (!doc) return null;
+  const { _id, ...rest } = doc;
+  return { _id: String(_id), ...(rest as Omit<UserRecord, '_id'>) };
+}
+
+export async function getUserById(id: string): Promise<UserRecord | null> {
+  await ready();
+  const db = await getMongoDb();
+  let objectId: ObjectId;
+  try {
+    objectId = new ObjectId(id);
+  } catch {
+    return null; // malformed id -- treat as not-found rather than throwing on user input
+  }
+  const doc = await db.collection(collectionName('users')).findOne({ _id: objectId });
+  if (!doc) return null;
+  const { _id, ...rest } = doc;
+  return { _id: String(_id), ...(rest as Omit<UserRecord, '_id'>) };
+}
+
+/** All accounts, for the Super-Admin-only user management list. Unlike getUserByEmail (used
+ *  by the login flow, which genuinely needs passwordHash to verify a login), this is the one
+ *  read path whose result reaches a client component -- so the hash comes out here, not just
+ *  gets displayed-but-ignored by the UI. A field that never needs to leave the server
+ *  shouldn't be sent to the browser on the chance every caller remembers to drop it. */
+export async function getAllUsers(): Promise<Omit<UserRecord, 'passwordHash'>[]> {
+  await ready();
+  const db = await getMongoDb();
+  const docs = await db.collection(collectionName('users')).find({}).sort({ email: 1 }).toArray();
+  return docs.map((doc) => {
+    const { _id, passwordHash: _passwordHash, ...rest } = doc;
+    return { _id: String(_id), ...(rest as Omit<UserRecord, '_id' | 'passwordHash'>) };
+  });
+}
+
+export type CreateUserInput = Omit<UserRecord, '_id' | 'passwordHash' | 'createdAt'> & { passwordPlain: string };
+
+/** Throws on a duplicate email (the unique index created in seedDemoUsers enforces it at the
+ *  database level) -- the caller is expected to catch and turn that into a user-facing
+ *  message, the same division of responsibility as every other write in this file. */
+export async function createUser(input: CreateUserInput): Promise<string> {
+  await ready();
+  const db = await getMongoDb();
+  const passwordHash = await hashPassword(input.passwordPlain);
+  const doc: Omit<UserRecord, '_id'> = {
+    email: input.email.toLowerCase().trim(),
+    passwordHash,
+    fullName: input.fullName,
+    role: input.role,
+    status: input.status,
+    ...(input.assignedDestination ? { assignedDestination: input.assignedDestination } : {}),
+    ...(input.businessName ? { businessName: input.businessName } : {}),
+    createdAt: new Date(),
+  };
+  const result = await db.collection(collectionName('users')).insertOne(doc);
+  return String(result.insertedId);
+}
+
+export type UpdateUserInput = Partial<Pick<UserRecord, 'fullName' | 'role' | 'status' | 'assignedDestination' | 'businessName'>> & { passwordPlain?: string };
+
+export async function updateUser(id: string, input: UpdateUserInput): Promise<void> {
+  await ready();
+  const db = await getMongoDb();
+  const { passwordPlain, ...fields } = input;
+  const set: Record<string, unknown> = { ...fields };
+  if (passwordPlain) set.passwordHash = await hashPassword(passwordPlain);
+  await db.collection(collectionName('users')).updateOne({ _id: new ObjectId(id) }, { $set: set });
 }
 
 async function ready() {
@@ -128,28 +254,68 @@ export async function getAnalyticsRows(dataset: string, filters?: { year?: numbe
   return docs.map((doc) => ({ ...(doc.payload as Record<string, unknown>), year: doc.year, source: doc.source }));
 }
 
-export async function getDestinationProfile(destination: string, nationality: string): Promise<DestinationProfile | null> {
+// The old signature took a `nationality` param for a per-nationality visa rule lookup, but
+// every row was ever seeded with nationality '*' -- the parameter never actually selected a
+// different rule from any real data. Dropped rather than kept as unused-but-harmless, since
+// an unused parameter that LOOKS load-bearing is worse than no parameter at all.
+function toDestinationProfile(doc: Record<string, unknown>): DestinationProfile {
+  return {
+    destination: String(doc.destination),
+    country: String(doc.country),
+    dailyCost: Number(doc.dailyCost),
+    safetyScore: Number(doc.safetyScore),
+    safetyNotes: String(doc.safetyNotes || ''),
+    safetyNotesMm: String(doc.safetyNotesMm || doc.safetyNotes || ''),
+    peakMonths: (doc.peakMonths || []) as string[],
+    shoulderMonths: (doc.shoulderMonths || []) as string[],
+    visaRule: String(doc.visaRule || 'Verify current visa rules with an official source.'),
+    visaRuleMm: String(doc.visaRuleMm || doc.visaRule || 'တရားဝင်ရင်းမြစ်ဖြင့် လက်ရှိဗီဇာစည်းမျဉ်းများကို စစ်ဆေးပါ။'),
+    status: doc.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE',
+    updatedAt: doc.updatedAt as Date | undefined,
+    updatedBy: doc.updatedBy as string | undefined,
+  };
+}
+
+export async function getDestinationProfile(destination: string): Promise<DestinationProfile | null> {
   await ready();
   const db = await getMongoDb();
-  const [cost, safety, seasonality, visa] = await Promise.all([
-    db.collection(collectionName('destination_cost')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' } }),
-    db.collection(collectionName('destination_safety')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' } }),
-    db.collection(collectionName('destination_seasonality')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' } }),
-    db.collection(collectionName('destination_visa')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' }, nationality: { $in: [nationality, '*'] } }),
-  ]);
-  if (!cost) return null;
-  return {
-    destination: String(cost.destination),
-    country: String(cost.country),
-    dailyCost: Number(cost.dailyCost),
-    safetyScore: Number(safety?.safetyScore || 50),
-    safetyNotes: String(safety?.notes || ''),
-    safetyNotesMm: String(safety?.notesMm || safety?.notes || ''),
-    peakMonths: (seasonality?.peakMonths || []) as string[],
-    shoulderMonths: (seasonality?.shoulderMonths || []) as string[],
-    visaRule: String(visa?.rule || 'Verify current visa rules with an official source.'),
-    visaRuleMm: String(visa?.ruleMm || visa?.rule || 'တရားဝင်ရင်းမြစ်ဖြင့် လက်ရှိဗီဇာစည်းမျဉ်းများကို စစ်ဆေးပါ။'),
-  };
+  const doc = await db.collection(collectionName('destinations')).findOne({ destination: { $regex: `^${destination}$`, $options: 'i' } });
+  return doc ? toDestinationProfile(doc) : null;
+}
+
+/** Every destination, for scoring/clustering/the map/the admin list. `includeInactive` is
+ *  false by default -- Decision Center scoring and clustering should never recommend or
+ *  categorize a destination a Super Admin has deliberately deactivated, but the admin list
+ *  itself needs to see (and be able to reactivate) inactive ones, hence the flag rather than
+ *  two separate functions. */
+export async function getAllDestinations(includeInactive = false): Promise<DestinationProfile[]> {
+  await ready();
+  const db = await getMongoDb();
+  const query = includeInactive ? {} : { status: { $ne: 'INACTIVE' } };
+  const docs = await db.collection(collectionName('destinations')).find(query).sort({ destination: 1 }).toArray();
+  return docs.map(toDestinationProfile);
+}
+
+/** Create-or-update. `originalName` lets a rename change the document's key without leaving
+ *  an orphaned duplicate under the old name -- update the old doc's `destination` field in
+ *  place (same _id story as a natural-key collection) rather than delete-then-insert, so a
+ *  rename can't ever race a concurrent read into seeing neither name. */
+export async function upsertDestination(profile: Omit<DestinationProfile, 'status' | 'updatedAt'> & { status?: DestinationProfile['status'] }, updatedBy: string, originalName?: string): Promise<void> {
+  await ready();
+  const db = await getMongoDb();
+  const collection = db.collection(collectionName('destinations'));
+  const filter = originalName ? { destination: originalName } : { destination: profile.destination };
+  await collection.updateOne(
+    filter,
+    { $set: { ...profile, status: profile.status ?? 'ACTIVE', updatedAt: new Date(), updatedBy } },
+    { upsert: true }
+  );
+}
+
+export async function deleteDestinationRecord(destination: string): Promise<void> {
+  await ready();
+  const db = await getMongoDb();
+  await db.collection(collectionName('destinations')).deleteOne({ destination });
 }
 
 export async function refreshTourismDocuments() {

@@ -1,0 +1,32 @@
+# Local/staging topology matching the platform blueprint's deployment section: one app
+# container, one database container, no orchestration layer beyond Compose. Ollama (the
+# Decision Center's optional local AI Insight feature) deliberately isn't included here --
+# it's a best-effort feature that degrades to silently doing nothing without it (see
+# src/lib/ollama.ts), not a required service worth adding container complexity for.
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DB_NAME: myanmar_tourism_dashboard
+      MONGODB_COLLECTION_PREFIX: myanmar_tourism_
+      # Required in every environment (see .env.example) -- no default is provided here on
+      # purpose, so a deployment can't accidentally run with an empty/shared session secret.
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET must be set -- generate one per .env.example}
+      NODE_ENV: production
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:
