@@ -312,6 +312,22 @@ export const MY: Record<string, string> = {
   "No active alerts.": "လက်ရှိသတိပေးချက် မရှိပါ။",
   "Nothing currently flagged as a statistical outlier or overcrowding signal.": "လောလောဆယ် စာရင်းအင်းအရ ထူးခြားချက် သို့မဟုတ် လူပိုလျှံနေမှု အချက်ပြချက်အဖြစ် အမှတ်အသားပြုထားခြင်း မရှိပါ။",
   "View": "ကြည့်ရှုရန်",
+
+  // Business Dashboard
+  "Business Dashboard": "စီးပွားရေး ဒက်ရှ်ဘုတ်",
+  "Real market signals for the destinations you operate in.": "သင်လုပ်ငန်းလည်ပတ်နေသော ခရီးစဉ်ဇုန်များအတွက် အမှန်တကယ် စျေးကွက်အချက်ပြချက်များ။",
+  "This shows real regional market data -- accommodation pressure, seasonality, and typical cost for a destination -- not booking, occupancy, or revenue figures for your own listing. That needs your account linked to an actual hotel or tour-operator record, which isn't built yet (Phase 3 of the platform roadmap).": "ဤသည်မှာ ဒေသန္တရ စျေးကွက်ဒေတာအစစ် -- ခရီးစဉ်ဇုန်တစ်ခု၏ တည်းခိုခန်းဖိအား၊ ရာသီအလိုက်အခြေအနေနှင့် ပုံမှန်စရိတ် -- ဖြစ်ပြီး သင်၏ကိုယ်ပိုင်စာရင်းသွင်းမှုအတွက် ဘွတ်ကင်၊ နေရာယူမှု သို့မဟုတ် ဝင်ငွေကိန်းဂဏန်းများ မဟုတ်ပါ။ ၎င်းအတွက် သင့်အကောင့်ကို အမှန်တကယ် ဟိုတယ် သို့မဟုတ် ခရီးသွားလုပ်ငန်း လည်ပတ်သူမှတ်တမ်းနှင့် ဆက်စပ်ရန် လိုအပ်ပြီး ယင်းကို မတည်ဆောက်ရသေးပါ (ပလက်ဖောင်း အစီအစဉ် အဆင့် ၃)။",
+  "Market / destination": "စျေးကွက် / ခရီးစဉ်ဇုန်",
+  "Choose a destination to see its market signal": "စျေးကွက်အချက်ပြချက်ကြည့်ရန် ခရီးစဉ်ဇုန်တစ်ခုကို ရွေးချယ်ပါ",
+  "Pick a destination above to see its current accommodation pressure, seasonality, and market category.": "လက်ရှိတည်းခိုခန်းဖိအား၊ ရာသီအလိုက်အခြေအနေနှင့် စျေးကွက်အမျိုးအစားကို ကြည့်ရန် အထက်မှ ခရီးစဉ်ဇုန်တစ်ခုကို ရွေးချယ်ပါ။",
+  "No market data is available for this destination yet.": "ဤခရီးစဉ်ဇုန်အတွက် စျေးကွက်ဒေတာ မရရှိသေးပါ။",
+  "Accommodation pressure": "တည်းခိုခန်းဖိအား",
+  "rooms/1,000 visitors (national median)": "အခန်း/ဧည့်သည် ၁,၀၀၀ (တစ်နိုင်ငံလုံး အလယ်တန်းတန်ဖိုး)",
+  "Hotel rooms in region": "ဒေသအတွင်း ဟိုတယ်အခန်းအရေအတွက်",
+  "Typical daily cost": "ပုံမှန်နေ့စဉ်စရိတ်",
+  "Season right now": "လက်ရှိရာသီ",
+  "Market category": "စျေးကွက်အမျိုးအစား",
+  "Data-driven, by cost and safety": "စရိတ်နှင့် လုံခြုံရေးအပေါ် အခြေခံသော ဒေတာမှရရှိသည့်",
 };
 
 export function translate(text: string, language: "en" | "my"): string {
