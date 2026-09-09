@@ -312,6 +312,16 @@ export async function upsertDestination(profile: Omit<DestinationProfile, 'statu
   );
 }
 
+/** Keeps a Destination Manager's account pointed at the right row after a Super Admin
+ *  renames their destination -- without this, upsertDestination's in-place rename leaves
+ *  assignedDestination (in both the user's Mongo record and, until they next log in, their
+ *  JWT) referring to a name that no longer resolves to any destination. */
+export async function reassignDestinationManagers(oldName: string, newName: string): Promise<void> {
+  await ready();
+  const db = await getMongoDb();
+  await db.collection(collectionName('users')).updateMany({ assignedDestination: oldName }, { $set: { assignedDestination: newName } });
+}
+
 export async function deleteDestinationRecord(destination: string): Promise<void> {
   await ready();
   const db = await getMongoDb();

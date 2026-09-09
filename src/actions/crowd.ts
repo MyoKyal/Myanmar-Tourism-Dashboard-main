@@ -101,12 +101,12 @@ export async function getCrowdMonitoring(): Promise<CrowdMonitoringResult> {
 
   const signals: CrowdSignal[] = rawSignals.map((s) => {
     let pressureLevel: CrowdSignal["pressureLevel"] = "UNKNOWN";
-    if (s.roomsPer1000Visitors != null && nationalMedian) {
+    if (s.roomsPer1000Visitors != null && nationalMedian != null) {
       const ratio = s.roomsPer1000Visitors / nationalMedian;
       pressureLevel = ratio >= 1.3 ? "LOW" : ratio >= 0.8 ? "MODERATE" : ratio >= 0.5 ? "HIGH" : "OVERCROWDED";
     }
     return { ...s, pressureLevel, year: latestDomesticYear };
   });
 
-  return { signals, nationalMedianRoomsPer1000: nationalMedian ? Number(nationalMedian.toFixed(2)) : null, year: latestDomesticYear };
+  return { signals, nationalMedianRoomsPer1000: nationalMedian != null ? Number(nationalMedian.toFixed(2)) : null, year: latestDomesticYear };
 }

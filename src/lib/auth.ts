@@ -1,8 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose';
 
-// Deliberately jose-only in this file (no bcryptjs) -- middleware.ts runs on the Edge
-// runtime and imports this module directly, so anything Node-oriented (password hashing)
-// lives in lib/password.ts instead, imported only from server actions and the seed script.
+// Deliberately jose-only in this file (no bcryptjs) -- proxy.ts (Next.js 16's renamed
+// middleware.ts) imports this module directly on every request, and it only ever needs to
+// verify a signed JWT, never hash/compare a password. Proxy now defaults to the Node.js
+// runtime rather than Edge (see proxy.ts), so this split is no longer an Edge-bundle
+// constraint -- it's just no reason to pull bcryptjs's code path into every request here.
+// Node-oriented password hashing lives in lib/password.ts instead, imported only from
+// server actions and the seed script.
 
 export type Role = 'SUPER_ADMIN' | 'DESTINATION_MANAGER' | 'BUSINESS_USER' | 'TOURIST';
 
@@ -24,9 +28,10 @@ function secretKey() {
   return new TextEncoder().encode(secret);
 }
 
-// JWT (not an opaque session id + DB lookup) so middleware can verify a session on the Edge
-// runtime without a database round-trip on every request -- jose runs there, the mongodb
-// driver does not. The trade-off: role changes don't take effect until the token expires
+// JWT (not an opaque session id + DB lookup) so proxy.ts can verify a session on every
+// request without a database round-trip -- jose is lightweight enough to run there
+// regardless of runtime, and this avoids adding a mongodb dependency to that path. The
+// trade-off: role changes don't take effect until the token expires
 // (max 8h) or the user logs in again. Acceptable for this app's scale; a revocation list
 // would be the fix if that lag ever becomes a real problem.
 export async function signSession(user: SessionUser): Promise<string> {
@@ -70,7 +75,7 @@ export const ROLE_HOME: Record<Role, string> = {
   TOURIST: '/decisions',
 };
 
-const DESTINATION_MANAGER_PATHS = ['/', '/trends', '/domestic', '/destinations', '/hotels', '/decisions', '/itinerary', '/crowd', '/alerts', '/manage-destinations'];
+const DESTINATION_MANAGER_PATHS = ['/', '/trends', '/domestic', '/destinations', '/hotels', '/expenditure', '/decisions', '/itinerary', '/crowd', '/alerts', '/manage-destinations'];
 const BUSINESS_USER_PATHS = ['/business'];
 const TOURIST_PATHS = ['/decisions', '/itinerary', '/crowd'];
 

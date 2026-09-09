@@ -127,7 +127,7 @@ export async function makeTravelDecision(input: DecisionInput) {
   const destinationCluster = await getClusterForDestination(destination);
   const isAsean = ['Thailand', 'Singapore', 'Malaysia', 'Indonesia', 'Vietnam', 'Philippines', 'Brunei', 'Cambodia', 'Laos'].some((country) => input.nationality.toLowerCase().includes(country.toLowerCase()));
   const visaNote = profile?.visaRule || (isAsean ? 'ASEAN passport: check the current visa exemption/arrival rules before booking.' : 'Non-ASEAN passport: budget time and fees for an eVisa or embassy process.');
-  const visaNoteMm = profile?.visaRule || (isAsean ? 'အာဆီယံနိုင်ငံကူးလက်မှတ်: မှာယူမီ လက်ရှိဗီဇာကင်းလွတ်ခွင့်/ရောက်ရှိချက်စည်းမျဉ်းများကို စစ်ဆေးပါ။' : 'အာဆီယံမဟုတ်သော နိုင်ငံကူးလက်မှတ်: eVisa သို့မဟုတ် သံရုံးလုပ်ငန်းစဉ်အတွက် အချိန်နှင့်စရိတ်ကို ကြိုတင်စီစဉ်ထားပါ။');
+  const visaNoteMm = profile?.visaRuleMm || (isAsean ? 'အာဆီယံနိုင်ငံကူးလက်မှတ်: မှာယူမီ လက်ရှိဗီဇာကင်းလွတ်ခွင့်/ရောက်ရှိချက်စည်းမျဉ်းများကို စစ်ဆေးပါ။' : 'အာဆီယံမဟုတ်သော နိုင်ငံကူးလက်မှတ်: eVisa သို့မဟုတ် သံရုံးလုပ်ငန်းစဉ်အတွက် အချိန်နှင့်စရိတ်ကို ကြိုတင်စီစဉ်ထားပါ။');
   const risk = dailyPerPerson < recommendedDailyCost * 0.65 ? 'high' : dailyPerPerson < recommendedDailyCost ? 'medium' : 'low';
   const fitReason = rank === 1
     ? `Best fit among all ${ranked.length} tracked destinations for this budget and purpose`

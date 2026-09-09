@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import { getAllDestinations, getDestinationProfile, upsertDestination, deleteDestinationRecord } from "@/lib/documentStore";
+import { getAllDestinations, getDestinationProfile, upsertDestination, deleteDestinationRecord, reassignDestinationManagers } from "@/lib/documentStore";
 import { MONTHS } from "@/lib/months";
 
 export type SaveDestinationState = { error: string | null };
@@ -14,8 +14,13 @@ function parseNumber(value: FormDataEntryValue | null, fallback = 0): number {
 
 // Called from the Super Admin's list page. Includes inactive destinations -- an admin needs
 // to see (and be able to reactivate) a deactivated one, not just the active catalog Decision
-// Center scoring uses.
+// Center scoring uses. Super-Admin-only: a Destination Manager never reaches this page (see
+// manage-destinations/page.tsx), so any other caller is a crafted request, not a real flow.
 export async function getDestinationsForAdmin() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "SUPER_ADMIN") {
+    throw new Error("Only a Super Admin can view the destination catalog.");
+  }
   return getAllDestinations(true);
 }
 
@@ -46,6 +51,11 @@ export async function saveDestinationAction(_prev: SaveDestinationState, formDat
   }
 
   if (!destinationName) return { error: "Destination name is required." };
+
+  if (isNew) {
+    const collision = await getDestinationProfile(destinationName);
+    if (collision) return { error: "A destination with this name already exists." };
+  }
 
   const peakMonths = formData.getAll("peakMonths").map(String).filter((m) => MONTHS.includes(m));
   const shoulderMonths = formData.getAll("shoulderMonths").map(String).filter((m) => MONTHS.includes(m));
@@ -80,6 +90,13 @@ export async function saveDestinationAction(_prev: SaveDestinationState, formDat
     originalName || undefined
   );
 
+  // A rename changes the destinations collection's key but nothing else knows about it --
+  // without this, the manager assigned to the old name would be orphaned (their record and
+  // JWT still point at a name that no longer resolves to any destination).
+  if (originalName && destinationName !== originalName) {
+    await reassignDestinationManagers(originalName, destinationName);
+  }
+
   redirect("/manage-destinations");
 }
 
@@ -95,6 +112,17 @@ export async function deleteDestinationAction(formData: FormData) {
   redirect("/manage-destinations");
 }
 
+// A Destination Manager legitimately calls this for their own row (see
+// manage-destinations/[id]/page.tsx), so unlike getDestinationsForAdmin this can't be
+// Super-Admin-only -- but a manager requesting a name other than their own is a crafted
+// request (the page itself redirects them away before ever reaching here), not a real flow.
 export async function getDestinationForEdit(name: string) {
+  const user = await getCurrentUser();
+  if (!user || (user.role !== "SUPER_ADMIN" && user.role !== "DESTINATION_MANAGER")) {
+    throw new Error("You are not authorized to view this destination.");
+  }
+  if (user.role === "DESTINATION_MANAGER" && name !== user.assignedDestination) {
+    throw new Error("You can only view the destination assigned to your account.");
+  }
   return getDestinationProfile(name);
 }

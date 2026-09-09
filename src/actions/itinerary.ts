@@ -56,12 +56,28 @@ function allocateDays(days: number, weights: number[]): number[] {
   const floors = raw.map(Math.floor).map((n) => Math.max(1, n));
   let remainder = days - floors.reduce((a, b) => a + b, 0);
   // Distribute leftover days (from flooring) to the highest-weighted stops first.
-  const order = weights.map((w, i) => i).sort((a, b) => weights[b] - weights[a]);
+  const highToLow = weights.map((w, i) => i).sort((a, b) => weights[b] - weights[a]);
   let idx = 0;
-  while (remainder > 0 && idx < order.length) {
-    floors[order[idx]] += 1;
+  while (remainder > 0 && idx < highToLow.length) {
+    floors[highToLow[idx]] += 1;
     remainder -= 1;
-    idx = (idx + 1) % order.length;
+    idx = (idx + 1) % highToLow.length;
+  }
+  // The Math.max(1, ...) floor above can push the total over `days` when one stop's weight
+  // dominates the others (every stop still needs at least 1 day). Claw the excess back from
+  // the lowest-weighted stops first, never dropping any stop below 1 day.
+  const lowToHigh = [...highToLow].reverse();
+  while (remainder < 0) {
+    let reclaimed = false;
+    for (const i of lowToHigh) {
+      if (remainder >= 0) break;
+      if (floors[i] > 1) {
+        floors[i] -= 1;
+        remainder += 1;
+        reclaimed = true;
+      }
+    }
+    if (!reclaimed) break; // every stop is already at the 1-day floor -- can't reconcile further
   }
   return floors;
 }

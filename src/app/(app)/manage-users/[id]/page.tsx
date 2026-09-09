@@ -14,7 +14,10 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
   const initial = isNew ? null : await getUserForEdit(id);
   if (!isNew && !initial) notFound();
 
-  const destinations = await getAllDestinations();
+  // includeInactive: true -- a manager may already be assigned to a destination a Super
+  // Admin has since deactivated. Excluding it here would make the select silently fall back
+  // to the empty placeholder instead of showing their real assignment.
+  const destinations = await getAllDestinations(true);
 
   return (
     <UserForm
