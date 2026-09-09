@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { MongoClient, ObjectId, type Db } from 'mongodb';
 import { hashPassword } from './password';
 import type { Role } from './auth';
@@ -242,7 +243,17 @@ export async function getTourismCollection(type?: TourismDocument['type'], year?
 
 // Flattened access, keyed by CSV `dataset` (e.g. 'fast_facts', 'hotels_rooms'). This is what
 // every analytics action uses — it returns each document's payload merged with its year/source.
-export async function getAnalyticsRows(dataset: string, filters?: { year?: number; fromYear?: number; toYear?: number }): Promise<Record<string, unknown>[]> {
+//
+// Wrapped in React's cache() so calls with the same (dataset, filters) arguments made within
+// one request are deduped to a single query instead of one per caller. This matters because
+// getAlerts() runs four independent actions (trends/hotels/expenditure/crowd) concurrently,
+// and several of them independently re-fetch the exact same full-history dataset (e.g.
+// "fast_facts" with no filter) for their own anomaly/benchmark calculations -- cache() collapses
+// those into one round-trip per request without requiring any of those callers to know about
+// each other. Only calls with identical arguments (Object.is per argument, so a fresh filter
+// object literal never matches another) dedupe -- there is no risk of stale data leaking across
+// requests, since Next.js gives each request its own cache scope.
+export const getAnalyticsRows = cache(async function getAnalyticsRows(dataset: string, filters?: { year?: number; fromYear?: number; toYear?: number }): Promise<Record<string, unknown>[]> {
   await ready();
   const db = await getMongoDb();
   const yearQuery = filters?.year
@@ -252,7 +263,7 @@ export async function getAnalyticsRows(dataset: string, filters?: { year?: numbe
       : {};
   const docs = await db.collection(collectionName('documents')).find({ dataset, ...yearQuery }, { projection: { payload: 1, year: 1, source: 1 } }).toArray();
   return docs.map((doc) => ({ ...(doc.payload as Record<string, unknown>), year: doc.year, source: doc.source }));
-}
+});
 
 // The old signature took a `nationality` param for a per-nationality visa rule lookup, but
 // every row was ever seeded with nationality '*' -- the parameter never actually selected a
@@ -287,14 +298,19 @@ export async function getDestinationProfile(destination: string): Promise<Destin
  *  false by default -- Decision Center scoring and clustering should never recommend or
  *  categorize a destination a Super Admin has deliberately deactivated, but the admin list
  *  itself needs to see (and be able to reactivate) inactive ones, hence the flag rather than
- *  two separate functions. */
-export async function getAllDestinations(includeInactive = false): Promise<DestinationProfile[]> {
+ *  two separate functions.
+ *
+ *  Wrapped in React's cache() for the same reason as getAnalyticsRows above -- multiple
+ *  independent callers within one request (e.g. itinerary generation re-deriving clusters per
+ *  stop, or getAlerts()'s concurrent sub-actions) otherwise each re-fetch and re-sort the same
+ *  collection. */
+export const getAllDestinations = cache(async function getAllDestinations(includeInactive = false): Promise<DestinationProfile[]> {
   await ready();
   const db = await getMongoDb();
   const query = includeInactive ? {} : { status: { $ne: 'INACTIVE' } };
   const docs = await db.collection(collectionName('destinations')).find(query).sort({ destination: 1 }).toArray();
   return docs.map(toDestinationProfile);
-}
+});
 
 /** Create-or-update. `originalName` lets a rename change the document's key without leaving
  *  an orphaned duplicate under the old name -- update the old doc's `destination` field in
