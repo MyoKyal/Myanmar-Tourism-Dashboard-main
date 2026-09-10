@@ -20,7 +20,7 @@ export default function InternationalPage() {
     const { data, loading, lastUpdated } = useLiveData(() => getIntlTourismData(filters), [filters]);
 
     const formatNumber = (num: number) => new Intl.NumberFormat('en-US', { notation: "compact" }).format(num || 0);
-    const revenueBenchmark = data?.revenueBenchmark?.map((row: any) => ({ ...row, label: `${t(row.country)} (${row.year})` }));
+    const revenueBenchmark = data?.revenueBenchmark?.map((row: any) => ({ ...row, label: `${t(row.country)} (${row.year}${row.source === "UN Tourism" ? " • UN Tourism" : ""})` }));
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-500">
@@ -97,13 +97,13 @@ export default function InternationalPage() {
                         </div>
                     </div>
 
-                    {/* ASEAN tourism revenue benchmark -- real World Bank receipts, not just visitor counts */}
+                    {/* ASEAN tourism revenue benchmark -- real receipts (World Bank, topped up with UN Tourism's more current figures), not just visitor counts */}
                     <div className="glass-panel p-6 flex flex-col mt-4">
                         <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
                             <div className="w-2 h-6 bg-rose-500 rounded-sm" />
                             {t("ASEAN Tourism Revenue Benchmark")}
                         </h3>
-                        <p className="text-sm text-slate-400 mt-1 mb-4 max-w-2xl">{t("International tourism receipts (World Bank), each country shown for its own most recently reported year since reporting timelines differ. World Bank's tourism-receipts series stopped updating for Myanmar and most ASEAN neighbors after 2019-2020 -- confirmed directly against the World Bank API, not an ingestion gap on this app's side -- so these bars predate the post-pandemic recovery.")}</p>
+                        <p className="text-sm text-slate-400 mt-1 mb-4 max-w-2xl">{t("International tourism receipts from World Bank Open Data, supplemented with UN Tourism's own data dashboard (marked \"UN Tourism\") for countries whose World Bank mirror of that same series hasn't caught up yet. Each country is shown for its own most recently reported year since reporting timelines differ. Myanmar's tourism-receipts reporting genuinely stopped after 2019-2020 in both sources -- confirmed directly against the World Bank API and UN Tourism's dashboard, not an ingestion gap on this app's side -- so its bar predates the post-pandemic recovery its neighbors have since posted.")}</p>
                         <div className="w-full h-[420px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={revenueBenchmark || []} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>

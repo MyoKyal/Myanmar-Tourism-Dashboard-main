@@ -13,13 +13,14 @@ function yearQuery(filters: GlobalFiltersState) {
 
 export async function getIntlTourismData(filters: GlobalFiltersState) {
     const q = yearQuery(filters);
-    const [facts, countries, asean, allFacts, allAsean, receipts] = await Promise.all([
+    const [facts, countries, asean, allFacts, allAsean, receipts, unwtoReceipts] = await Promise.all([
         getAnalyticsRows("fast_facts", q),
         getAnalyticsRows("border_entry_visa_country", q),
         getAnalyticsRows("asean_arrivals", q),
         getAnalyticsRows("fast_facts"),
         getAnalyticsRows("asean_arrivals"),
         getAnalyticsRows("worldbank_tourism_receipts"),
+        getAnalyticsRows("unwto_tourism_receipts"),
     ]);
 
     const filtered = facts.filter((row) => GATEWAYS.includes(String(row.gateway)));
@@ -80,20 +81,29 @@ export async function getIntlTourismData(filters: GlobalFiltersState) {
     const comparison = years.map((year) => ({ year, myanmar: myanmarByYear[year] || 0, country: countryByYear[year] || 0 }));
 
     // Revenue benchmark: Myanmar's total (global, all-source) tourism receipts against
-    // each ASEAN neighbor's, sourced from World Bank Open Data. Real-world tourism
-    // reporting lags by a different number of years per country, so this uses each
-    // country's own most recently reported year rather than forcing one common year --
-    // the year is shown alongside every bar so the comparison stays honest about that.
-    const receiptsByCountry: Record<string, { year: number; receiptsUsd: number }[]> = {};
+    // each ASEAN neighbor's. Two sources are merged here -- World Bank Open Data and UN
+    // Tourism's own data dashboard, which reports several ASEAN countries' 2025 figures
+    // well before World Bank's mirror of that same underlying series catches up (see
+    // scripts/ingest-unwto.cjs for why). Real-world tourism reporting also lags by a
+    // different number of years per country regardless of source, so this uses each
+    // country's own most recently reported year across BOTH sources rather than forcing
+    // one common year -- the year (and source, when it isn't World Bank) is shown
+    // alongside every bar so the comparison stays honest about that.
+    const receiptsByCountry: Record<string, { year: number; receiptsUsd: number; source: "World Bank" | "UN Tourism" }[]> = {};
     receipts.forEach((row) => {
         const country = String(row.country);
         receiptsByCountry[country] ??= [];
-        receiptsByCountry[country].push({ year: Number(row.year), receiptsUsd: Number(row.receiptsUsd || 0) });
+        receiptsByCountry[country].push({ year: Number(row.year), receiptsUsd: Number(row.receiptsUsd || 0), source: "World Bank" });
+    });
+    unwtoReceipts.forEach((row) => {
+        const country = String(row.country);
+        receiptsByCountry[country] ??= [];
+        receiptsByCountry[country].push({ year: Number(row.year), receiptsUsd: Number(row.receiptsUsd || 0), source: "UN Tourism" });
     });
     const revenueBenchmark = Object.entries(receiptsByCountry)
         .map(([country, rows]) => {
             const latest = rows.sort((a, b) => b.year - a.year)[0];
-            return { country, year: latest.year, receiptsUsdM: Math.round(latest.receiptsUsd / 1_000_000), isMyanmar: country === "Myanmar" };
+            return { country, year: latest.year, source: latest.source, receiptsUsdM: Math.round(latest.receiptsUsd / 1_000_000), isMyanmar: country === "Myanmar" };
         })
         .sort((a, b) => b.receiptsUsdM - a.receiptsUsdM);
 
